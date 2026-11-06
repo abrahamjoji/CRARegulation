@@ -1,0 +1,35 @@
+name: CRA evidence collect
+description: Thin wrapper that runs the pinned collector image. It holds no logic and no credentials.
+inputs:
+  image:
+    description: Collector image, pinned as name@sha256:digest. Tags are refused.
+    required: true
+  config:
+    description: Path to cra.toml, relative to the workspace.
+    default: cra.toml
+  command:
+    description: "prepare, or collect"
+    default: collect
+outputs:
+  exit-code:
+    description: The documented cra exit code.
+    value: ${{ steps.run.outputs.exit-code }}
+runs:
+  using: composite
+  steps:
+    - id: run
+      shell: bash
+      env:
+        CRA_IMAGE: ${{ inputs.image }}
+        CRA_CONFIG: ${{ inputs.config }}
+        CRA_COMMAND: ${{ inputs.command }}
+      run: |
+        case "$CRA_IMAGE" in *@sha256:*) ;; *) echo "image must be pinned by digest" >&2; exit 30 ;; esac
+        case "$CRA_COMMAND" in prepare|collect) ;; *) echo "command must be prepare or collect" >&2; exit 30 ;; esac
+        set +e
+        docker run --rm --network none --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
+          --user "$(id -u):$(id -g)" -v "$GITHUB_WORKSPACE:/workspace" -w /workspace "$CRA_IMAGE" \
+          "$CRA_COMMAND" --config "$CRA_CONFIG"
+        code=$?
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        exit "$code"

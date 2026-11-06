@@ -12,3 +12,4 @@ dist/
 reference/app/build*/
 reference/out/
 reference/app/CMakeUserPresets.json
+deploy/dev-kev/kev.json

@@ -1,0 +1,10 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"cra.inventory/1","title":"Reconciled inventory","type":"object",
+"required":["schema_version","product","source","collector","configurations","adapters","artifacts","components","relationships","targets","conflicts","unresolved_observations","coverage","evidence","observation_index"],
+"properties":{"schema_version":{"const":"cra.inventory/1"},
+"components":{"type":"array","items":{"type":"object","required":["id","identity","presence","scope","linkage","configurations","artifacts","observations"],"properties":{
+"identity":{"type":"object","required":["name","version","ecosystem","purl"]},
+"presence":{"type":"object","required":["declared","resolved","observed","shipped","shipped_rationale"],"properties":{"declared":{"type":"boolean"},"resolved":{"type":"boolean"},"observed":{"type":"boolean"},"shipped":{"enum":["yes","no","unknown"]}}},
+"scope":{"enum":["runtime","test","build_tool","build_stage","unknown"]}}}},
+"relationships":{"type":"array","items":{"type":"object","required":["from","to","kind"]}},
+"conflicts":{"type":"array","items":{"type":"object","required":["kind","subject","values","detail"]}},
+"coverage":{"type":"object","required":["status","incomplete_reasons","sources","limitations"],"properties":{"status":{"enum":["complete","incomplete"]}}}}}

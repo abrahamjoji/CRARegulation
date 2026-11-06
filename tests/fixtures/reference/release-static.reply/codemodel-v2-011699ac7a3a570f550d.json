@@ -1,0 +1,169 @@
+{
+	"configurations" : 
+	[
+		{
+			"abstractTargets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "CONAN_LIB::fmt_fmt_RELEASE::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-CONAN_LIB__fmt_fmt_RELEASE-Release-fd5ae8d5a8ae7cbb64ba.json",
+					"name" : "CONAN_LIB::fmt_fmt_RELEASE",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "CONAN_LIB::fmt_fmt_fmt_fmt_RELEASE::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-CONAN_LIB__fmt_fmt_fmt_fmt_RELEASE-Release-2440fc25b00b63de7e80.json",
+					"name" : "CONAN_LIB::fmt_fmt_fmt_fmt_RELEASE",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "CONAN_LIB::zlib_z_RELEASE::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-CONAN_LIB__zlib_z_RELEASE-Release-035ea4be87218e1f7cba.json",
+					"name" : "CONAN_LIB::zlib_z_RELEASE",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ZLIB::ZLIB::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ZLIB__ZLIB-Release-455c2a8e68aaedb75311.json",
+					"name" : "ZLIB::ZLIB",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "fmt::fmt::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-fmt__fmt-Release-87e2ee9ec5ef597b3e23.json",
+					"name" : "fmt::fmt",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "fmt_DEPS_TARGET::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-fmt_DEPS_TARGET-Release-e98127538c4c38a4941a.json",
+					"name" : "fmt_DEPS_TARGET",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "fmt_fmt_fmt_DEPS_TARGET::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-fmt_fmt_fmt_DEPS_TARGET-Release-60d745a172eb66b2f376.json",
+					"name" : "fmt_fmt_fmt_DEPS_TARGET",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "nlohmann_json::nlohmann_json::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-nlohmann_json__nlohmann_json-Release-fd55904ccad976bee12b.json",
+					"name" : "nlohmann_json::nlohmann_json",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "nlohmann_json_DEPS_TARGET::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-nlohmann_json_DEPS_TARGET-Release-f9e193a8649e2c9a2901.json",
+					"name" : "nlohmann_json_DEPS_TARGET",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "zlib_DEPS_TARGET::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-zlib_DEPS_TARGET-Release-29f5e9489f1eb23a997e.json",
+					"name" : "zlib_DEPS_TARGET",
+					"projectIndex" : 0
+				}
+			],
+			"directories" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9
+					],
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Release-c4d5031ac37f77bf212f.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.21"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "reference_gateway",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "gateway::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-gateway-Release-c7839d53d1a1fe227245.json",
+					"name" : "gateway",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "tinycrc::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-tinycrc-Release-38bb40a4c2f38d8c0476.json",
+					"name" : "tinycrc",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/build/app/build-release-static/build/Release",
+		"source" : "/build/app"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 11
+	}
+}

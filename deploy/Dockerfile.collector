@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1
+# Same collector code as the CLI. Targets:
+#   collector: prepare, collect, gate and hosted submission. Contains no analysis engine.
+#   local:     adds the engine and Grype for fully local analysis.
+# A distributed image can be inspected by its recipient, so proprietary analysis must
+# stay out of any image that leaves the service: that is why collector has no engine.
+FROM python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df AS base
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 SYFT_CHECK_FOR_APP_UPDATE=false GRYPE_CHECK_FOR_APP_UPDATE=false
+RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin cra
+ADD --checksum=sha256:9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704 https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz /tmp/syft.tar.gz
+RUN tar -xzf /tmp/syft.tar.gz -C /usr/local/bin syft && rm /tmp/syft.tar.gz
+WORKDIR /workspace
+
+FROM base AS collector
+COPY src/cra /opt/cra/cra
+RUN rm -rf /opt/cra/cra/engine /opt/cra/cra/hosted && printf '#!/bin/sh\nexec python -I -c "import sys; sys.path.insert(0, \"/opt/cra\"); from cra.cli import entrypoint; entrypoint()" "$@"\n' > /usr/local/bin/cra && chmod 0755 /usr/local/bin/cra
+USER 10001
+ENTRYPOINT ["cra"]
+
+FROM base AS local
+ADD --checksum=sha256:9c8965ced9df657e5e851c14021bae838802f711edd7a48f9bc3c923a8d28f12 https://github.com/anchore/grype/releases/download/v0.121.2/grype_0.121.2_linux_amd64.tar.gz /tmp/grype.tar.gz
+RUN tar -xzf /tmp/grype.tar.gz -C /usr/local/bin grype && rm /tmp/grype.tar.gz
+COPY src/cra /opt/cra/cra
+RUN printf '#!/bin/sh\nexec python -I -c "import sys; sys.path.insert(0, \"/opt/cra\"); from cra.cli import entrypoint; entrypoint()" "$@"\n' > /usr/local/bin/cra && chmod 0755 /usr/local/bin/cra
+USER 10001
+ENTRYPOINT ["cra"]

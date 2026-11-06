@@ -30,9 +30,16 @@ LIMITATIONS = {
 
 
 def parse_elf(data):
-    """Return ELF facts, or None when the bytes are not ELF. Malformed ELF raises."""
+    """Return ELF facts, or None when the bytes are not ELF. Malformed ELF raises UntrustedInputError."""
     if data[:4] != b"\x7fELF":
         return None
+    try:
+        return _parse_elf(data)
+    except (OverflowError, ValueError, IndexError, struct.error) as exc:
+        raise UntrustedInputError("elf_invalid", f"malformed ELF structure: {exc}") from exc
+
+
+def _parse_elf(data):
     if len(data) < 64:
         raise UntrustedInputError("elf_invalid", "truncated ELF header")
     bits, endian = data[4], data[5]

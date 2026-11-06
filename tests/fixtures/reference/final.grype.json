@@ -1,0 +1,331 @@
+{
+ "descriptor": {
+  "name": "grype",
+  "version": "0.121.2"
+ },
+ "ignoredMatches": [],
+ "matches": [
+  {
+   "artifact": {
+    "cpes": [
+     "cpe:2.3:a:libc6:libc6:2.36-9\\+deb12u4:*:*:*:*:*:*:*"
+    ],
+    "id": "f18d0408ac470d53",
+    "language": "",
+    "licenses": [],
+    "locations": [
+     {
+      "accessPath": "/var/lib/dpkg/status",
+      "annotations": {
+       "evidence": "primary"
+      },
+      "layerID": "sha256:accf7361e07efd6802dc26db567a678483ef5eb05dbb9af9e0b404320e5f48f6",
+      "path": "/var/lib/dpkg/status"
+     }
+    ],
+    "name": "libc6",
+    "purl": "pkg:deb/debian/libc6@2.36-9%2Bdeb12u4?arch=amd64&distro=debian-12&upstream=glibc",
+    "type": "deb",
+    "upstreams": [
+     {
+      "name": "glibc"
+     }
+    ],
+    "version": "2.36-9+deb12u4"
+   },
+   "matchDetails": [
+    {
+     "fix": {
+      "suggestedVersion": "2.36-9+deb12u6"
+     },
+     "found": {
+      "versionConstraint": "< 2.36-9+deb12u6 (deb)",
+      "vulnerabilityID": "CVE-2024-2961"
+     },
+     "matcher": "dpkg-matcher",
+     "searchedBy": {
+      "distro": {
+       "type": "debian",
+       "version": "12"
+      },
+      "namespace": "debian:distro:debian:12",
+      "package": {
+       "name": "glibc",
+       "version": "2.36-9+deb12u4"
+      }
+     },
+     "type": "exact-indirect-match"
+    }
+   ],
+   "relatedVulnerabilities": [
+    {
+     "cvss": [
+      {
+       "metrics": {
+        "baseScore": 7.3,
+        "exploitabilityScore": 2.6,
+        "impactScore": 4.8
+       },
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "type": "Secondary",
+       "vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:H",
+       "vendorMetadata": {},
+       "version": "3.1"
+      }
+     ],
+     "cwes": [
+      {
+       "cve": "CVE-2024-2961",
+       "cwe": "CWE-787",
+       "source": "3ff69d7a-14f2-4f67-a097-88dee7810d18",
+       "type": "Secondary"
+      }
+     ],
+     "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2024-2961",
+     "description": "The iconv() function in the GNU C Library versions 2.39 and older may overflow the output buffer passed to it by up to 4 bytes when converting strings to the ISO-2022-CN-EXT character set, which may be used to crash an application or overwrite a neighbouring variable.",
+     "epss": [
+      {
+       "cve": "CVE-2024-2961",
+       "date": "2026-11-05",
+       "epss": 0.8833,
+       "percentile": 0.99771
+      }
+     ],
+     "id": "CVE-2024-2961",
+     "namespace": "nvd:cpe",
+     "severity": "High",
+     "urls": [
+      "http://www.openwall.com/lists/oss-security/2024/04/17/9",
+      "http://www.openwall.com/lists/oss-security/2024/04/18/4",
+      "http://www.openwall.com/lists/oss-security/2024/04/24/2",
+      "http://www.openwall.com/lists/oss-security/2024/05/27/1",
+      "http://www.openwall.com/lists/oss-security/2024/05/27/2",
+      "http://www.openwall.com/lists/oss-security/2024/05/27/3",
+      "http://www.openwall.com/lists/oss-security/2024/05/27/4",
+      "http://www.openwall.com/lists/oss-security/2024/05/27/5",
+      "http://www.openwall.com/lists/oss-security/2024/05/27/6",
+      "http://www.openwall.com/lists/oss-security/2024/07/22/5",
+      "https://lists.debian.org/debian-lts-announce/2024/05/msg00001.html",
+      "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/BTJFBGHDYG5PEIFD5WSSSKSFZ2AZWC5N/",
+      "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/P3I4KYS6EU6S7QZ47WFNTPVAHFIUQNEL/",
+      "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/YAMJQI3Y6BHWV3CUTYBXOZONCUJNOB2Z/",
+      "https://security.netapp.com/advisory/ntap-20240531-0002/",
+      "https://sourceware.org/git/?p=glibc.git;a=blob;f=advisories/GLIBC-SA-2024-0004",
+      "https://www.ambionics.io/blog/iconv-cve-2024-2961-p1",
+      "https://www.ambionics.io/blog/iconv-cve-2024-2961-p2",
+      "https://www.ambionics.io/blog/iconv-cve-2024-2961-p3",
+      "https://cert-portal.siemens.com/productcert/html/ssa-082556.html"
+     ]
+    }
+   ],
+   "vulnerability": {
+    "advisories": [
+     {
+      "id": "DSA-5673-1",
+      "link": "https://security-tracker.debian.org/tracker/DSA-5673-1"
+     }
+    ],
+    "cvss": [
+     {
+      "metrics": {
+       "baseScore": 7.3,
+       "exploitabilityScore": 2.6,
+       "impactScore": 4.8
+      },
+      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+      "type": "Secondary",
+      "vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:H",
+      "vendorMetadata": {},
+      "version": "3.1"
+     }
+    ],
+    "cwes": [
+     {
+      "cve": "CVE-2024-2961",
+      "cwe": "CWE-787",
+      "source": "3ff69d7a-14f2-4f67-a097-88dee7810d18",
+      "type": "Secondary"
+     }
+    ],
+    "dataSource": "https://security-tracker.debian.org/tracker/CVE-2024-2961",
+    "description": "The iconv() function in the GNU C Library versions 2.39 and older may overflow the output buffer passed to it by up to 4 bytes when converting strings to the ISO-2022-CN-EXT character set, which may be used to crash an application or overwrite a neighbouring variable.",
+    "epss": [
+     {
+      "cve": "CVE-2024-2961",
+      "date": "2026-11-05",
+      "epss": 0.8833,
+      "percentile": 0.99771
+     }
+    ],
+    "fix": {
+     "available": [
+      {
+       "date": "2024-04-23",
+       "kind": "advisory",
+       "version": "2.36-9+deb12u6"
+      }
+     ],
+     "state": "fixed",
+     "versions": [
+      "2.36-9+deb12u6"
+     ]
+    },
+    "id": "CVE-2024-2961",
+    "namespace": "debian:distro:debian:12",
+    "risk": 65.3642,
+    "severity": "High",
+    "urls": []
+   }
+  },
+  {
+   "artifact": {
+    "cpes": [
+     "cpe:2.3:a:libc6:libc6:2.36-9\\+deb12u4:*:*:*:*:*:*:*"
+    ],
+    "id": "f18d0408ac470d53",
+    "language": "",
+    "licenses": [],
+    "locations": [
+     {
+      "accessPath": "/var/lib/dpkg/status",
+      "annotations": {
+       "evidence": "primary"
+      },
+      "layerID": "sha256:accf7361e07efd6802dc26db567a678483ef5eb05dbb9af9e0b404320e5f48f6",
+      "path": "/var/lib/dpkg/status"
+     }
+    ],
+    "name": "libc6",
+    "purl": "pkg:deb/debian/libc6@2.36-9%2Bdeb12u4?arch=amd64&distro=debian-12&upstream=glibc",
+    "type": "deb",
+    "upstreams": [
+     {
+      "name": "glibc"
+     }
+    ],
+    "version": "2.36-9+deb12u4"
+   },
+   "matchDetails": [
+    {
+     "found": {
+      "versionConstraint": "none (unknown)",
+      "vulnerabilityID": "CVE-2026-5450"
+     },
+     "matcher": "dpkg-matcher",
+     "searchedBy": {
+      "distro": {
+       "type": "debian",
+       "version": "12"
+      },
+      "namespace": "debian:distro:debian:12",
+      "package": {
+       "name": "glibc",
+       "version": "2.36-9+deb12u4"
+      }
+     },
+     "type": "exact-indirect-match"
+    }
+   ],
+   "relatedVulnerabilities": [
+    {
+     "cvss": [
+      {
+       "metrics": {
+        "baseScore": 9.8,
+        "exploitabilityScore": 3.9,
+        "impactScore": 5.9
+       },
+       "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+       "type": "Secondary",
+       "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+       "vendorMetadata": {},
+       "version": "3.1"
+      }
+     ],
+     "cwes": [
+      {
+       "cve": "CVE-2026-5450",
+       "cwe": "CWE-122",
+       "source": "3ff69d7a-14f2-4f67-a097-88dee7810d18",
+       "type": "Secondary"
+      },
+      {
+       "cve": "CVE-2026-5450",
+       "cwe": "CWE-787",
+       "source": "nvd@nist.gov",
+       "type": "Primary"
+      }
+     ],
+     "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2026-5450",
+     "description": "Calling the scanf family of functions with a %mc (malloc'd character match) in the GNU C Library version 2.7 to version 2.43 with a format width specifier with an explicit width greater than 1024 could result in a one byte heap buffer overflow.",
+     "epss": [
+      {
+       "cve": "CVE-2026-5450",
+       "date": "2026-11-05",
+       "epss": 0.00502,
+       "percentile": 0.43151
+      }
+     ],
+     "id": "CVE-2026-5450",
+     "namespace": "nvd:cpe",
+     "severity": "Critical",
+     "urls": [
+      "https://inbox.sourceware.org/libc-announce/b11f0003-6ec1-4bd6-b9de-9e38a4efeca3@redhat.com/T/#u",
+      "https://sourceware.org/bugzilla/show_bug.cgi?id=CVE-2026-5450",
+      "https://cert-portal.siemens.com/productcert/html/ssa-082556.html"
+     ]
+    }
+   ],
+   "vulnerability": {
+    "advisories": [],
+    "cvss": [
+     {
+      "metrics": {
+       "baseScore": 9.8,
+       "exploitabilityScore": 3.9,
+       "impactScore": 5.9
+      },
+      "source": "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+      "type": "Secondary",
+      "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "vendorMetadata": {},
+      "version": "3.1"
+     }
+    ],
+    "cwes": [
+     {
+      "cve": "CVE-2026-5450",
+      "cwe": "CWE-122",
+      "source": "3ff69d7a-14f2-4f67-a097-88dee7810d18",
+      "type": "Secondary"
+     },
+     {
+      "cve": "CVE-2026-5450",
+      "cwe": "CWE-787",
+      "source": "nvd@nist.gov",
+      "type": "Primary"
+     }
+    ],
+    "dataSource": "https://security-tracker.debian.org/tracker/CVE-2026-5450",
+    "description": "Calling the scanf family of functions with a %mc (malloc'd character match) in the GNU C Library version 2.7 to version 2.43 with a format width specifier with an explicit width greater than 1024 could result in a one byte heap buffer overflow.",
+    "epss": [
+     {
+      "cve": "CVE-2026-5450",
+      "date": "2026-11-05",
+      "epss": 0.00502,
+      "percentile": 0.43151
+     }
+    ],
+    "fix": {
+     "state": "wont-fix",
+     "versions": []
+    },
+    "id": "CVE-2026-5450",
+    "namespace": "debian:distro:debian:12",
+    "risk": 0.47188,
+    "severity": "Critical",
+    "urls": []
+   }
+  }
+ ]
+}

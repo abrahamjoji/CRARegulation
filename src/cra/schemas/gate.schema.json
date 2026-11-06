@@ -1,0 +1,3 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"cra.gate/1","title":"Gate record","type":"object","required":["schema_version","gate_version","mode","outcome","exit_code","reasons","provenance"],
+"properties":{"schema_version":{"const":"cra.gate/1"},"mode":{"enum":["build","release"]},"outcome":{"enum":["passed","policy_blocked","incomplete"]},"exit_code":{"enum":[0,10,20]},"reasons":{"type":"array","items":{"type":"object","required":["code","message"]}},
+"provenance":{"oneOf":[{"type":"null"},{"type":"object","required":["result_sha256","collector","engine","policy","scanners","vulnerability_data","source","artifacts"]}]}}}

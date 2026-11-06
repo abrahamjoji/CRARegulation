@@ -93,7 +93,6 @@ class Analysis:
 class Hosted:
     url: str | None = None
     token_env: str = "CRA_TOKEN"
-    include_binaries: bool = False
     poll_seconds: int = 5
     timeout_seconds: int = 900
 
@@ -221,9 +220,8 @@ def load_config(path):
                         register_file=_path(root, _string(analysis_table, "register_file", "analysis")))
 
     hosted_table = raw.get("hosted", {})
-    _keys(hosted_table, {"url", "token_env", "include_binaries", "poll_seconds", "timeout_seconds"}, "hosted")
+    _keys(hosted_table, {"url", "token_env", "poll_seconds", "timeout_seconds"}, "hosted")
     hosted = Hosted(url=_string(hosted_table, "url", "hosted"), token_env=_string(hosted_table, "token_env", "hosted", default="CRA_TOKEN"),
-                    include_binaries=bool(hosted_table.get("include_binaries", False)),
                     poll_seconds=int(hosted_table.get("poll_seconds", 5)), timeout_seconds=int(hosted_table.get("timeout_seconds", 900)))
 
     revision = _string(source, "revision", "source")
@@ -233,7 +231,7 @@ def load_config(path):
     return Config(path=path.resolve(), root=root,
                   product_name=_string(product, "name", "product", required=True),
                   product_version=_string(product, "version", "product", required=True),
-                  product_supplier=_string(product, "supplier", "product", default=""),
+                  product_supplier=_string(product, "supplier", "product") or "",
                   revision=revision, scope=PathScope([_path(root, item) for item in roots]),
                   output_dir=_path(root, _string(output, "dir", "output", default=".cra")),
                   configurations=configurations, images=images, artifacts=artifacts,

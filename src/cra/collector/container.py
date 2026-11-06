@@ -97,7 +97,7 @@ def parse_syft(document, image, evidence_id):
                            "distro": f"{distro.get('id')}-{distro.get('versionID')}" if distro.get("id") else None},
         })
     return {"tool_name": descriptor.get("name"), "tool_version": str(descriptor.get("version", "")).lstrip("v"), "schema_version": schema,
-            "manifest_digest": metadata.get("manifestDigest") or "", "image_id": metadata.get("imageID") or "",
+            "manifest_digest": metadata.get("manifestDigest") or "", "repo_digests": [str(item) for item in metadata.get("repoDigests") or []], "image_id": metadata.get("imageID") or "",
             "distro": {"id": distro.get("id"), "version": distro.get("versionID")} if distro.get("id") else None,
             "layers": len(metadata.get("layers") or []), "observations": observations}
 
@@ -138,8 +138,13 @@ def collect_image(image, tools, store):
         return record, [], "unsupported", f"Syft output schema {parsed['schema_version']} is not verified", tool
     resolved = parsed["manifest_digest"] or record["digest"]
     record.update(digest=resolved, image_id=parsed["image_id"], distro=parsed["distro"], layers=parsed["layers"])
-    if image.reference and not image.reference.endswith(resolved or "\0"):
-        return record, [], "failed", f"resolved digest {resolved or 'unknown'} does not match the pinned reference", tool
+    if image.reference:
+        # The pin may name a multi-platform index; Syft then reports the platform's manifest separately.
+        pinned = image.reference.rsplit("@", 1)[1]
+        record["requested_digest"] = pinned
+        record["repo_digests"] = parsed["repo_digests"]
+        if pinned != resolved and not any(item.endswith("@" + pinned) for item in parsed["repo_digests"]):
+            return record, [], "failed", f"Syft resolved {resolved or 'unknown'}, which does not match the pinned reference {pinned}", tool
     if image.expected_digest and resolved != image.expected_digest:
         return record, [], "failed", f"resolved digest {resolved or 'unknown'} differs from expected {image.expected_digest}", tool
     if not resolved:

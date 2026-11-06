@@ -1,4 +1,5 @@
 """Tar handling for hostile input. Nothing is written until every member passes."""
+import gzip
 import os
 import stat
 import tarfile
@@ -112,9 +113,12 @@ def create_tar_gz(source_dir, destination):
         info.mode = 0o755 if info.isdir() else 0o644
         return info
 
-    with tarfile.open(destination, "w:gz", compresslevel=6) as archive:
-        for path in sorted(source_dir.rglob("*")):
-            if path.is_symlink():
-                raise UntrustedInputError("bundle_symlink", f"refusing to pack a symlink: {path}")
-            archive.add(path, arcname=path.relative_to(source_dir).as_posix(), recursive=False, filter=clean)
+    # mtime=0 and sorted members make the bytes reproducible, so a retried upload
+    # of the same evidence has the same hash and the same idempotency key.
+    with open(destination, "wb") as raw, gzip.GzipFile(filename="", fileobj=raw, mode="wb", mtime=0, compresslevel=6) as compressed:
+        with tarfile.open(fileobj=compressed, mode="w") as archive:
+            for path in sorted(source_dir.rglob("*")):
+                if path.is_symlink():
+                    raise UntrustedInputError("bundle_symlink", f"refusing to pack a symlink: {path}")
+                archive.add(path, arcname=path.relative_to(source_dir).as_posix(), recursive=False, filter=clean)
     return destination

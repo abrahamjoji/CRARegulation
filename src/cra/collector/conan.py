@@ -12,7 +12,7 @@ from ..common.safety import stable_id
 
 LINKAGE = {"shared-library": "shared", "static-library": "static", "header-library": "header", "application": "application"}
 BAD_BINARY = {"Missing": "binary is missing", "Invalid": "configuration is invalid for this package", "Skip": None, "Editable": None}
-_REF = re.compile(r"^(?P<name>[^/@#\s]+)(?:/(?P<version>[^@#\s]+))?(?:@(?P<user>[^/#\s]+)/(?P<channel>[^#\s]+))?(?:#(?P<rrev>[^\s]+))?$")
+_REF = re.compile(r"^(?P<name>[^/@#\s]+)(?:/(?P<version>\[[^\]]*\]|[^@#\s]+))?(?:@(?P<user>[^/#\s]+)/(?P<channel>[^#\s]+))?(?:#(?P<rrev>[^\s]+))?$")
 
 
 def parse_ref(reference):

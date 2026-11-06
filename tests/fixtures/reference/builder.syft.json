@@ -1,0 +1,324 @@
+{
+ "artifacts": [
+  {
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:cmake:cmake:3.25.1-1:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "foundBy": "dpkg-db-cataloger",
+   "id": "280cdd0c189e36c2",
+   "language": "",
+   "licenses": [],
+   "locations": [
+    {
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     },
+     "layerID": "sha256:320b08dba9b93e97c9a7419c787ccaa2c24c778efa1b0ef2420ea491efa762b0",
+     "path": "/var/lib/dpkg/status"
+    }
+   ],
+   "metadata": {
+    "architecture": "amd64",
+    "files": [],
+    "installedSize": 0,
+    "maintainer": "Debian",
+    "package": "cmake",
+    "source": "cmake",
+    "sourceVersion": "",
+    "version": "3.25.1-1"
+   },
+   "metadataType": "dpkg-db-entry",
+   "name": "cmake",
+   "purl": "pkg:deb/debian/cmake@3.25.1-1?arch=amd64&distro=debian-12&upstream=cmake",
+   "type": "deb",
+   "version": "3.25.1-1"
+  },
+  {
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:curl:curl:7.88.1-10\\+deb12u5:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "foundBy": "dpkg-db-cataloger",
+   "id": "4921940b5f8c23b4",
+   "language": "",
+   "licenses": [],
+   "locations": [
+    {
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     },
+     "layerID": "sha256:320b08dba9b93e97c9a7419c787ccaa2c24c778efa1b0ef2420ea491efa762b0",
+     "path": "/var/lib/dpkg/status"
+    }
+   ],
+   "metadata": {
+    "architecture": "amd64",
+    "files": [],
+    "installedSize": 0,
+    "maintainer": "Debian",
+    "package": "curl",
+    "source": "curl",
+    "sourceVersion": "",
+    "version": "7.88.1-10+deb12u5"
+   },
+   "metadataType": "dpkg-db-entry",
+   "name": "curl",
+   "purl": "pkg:deb/debian/curl@7.88.1-10%2Bdeb12u5?arch=amd64&distro=debian-12&upstream=curl",
+   "type": "deb",
+   "version": "7.88.1-10+deb12u5"
+  },
+  {
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:gcc-12:gcc-12:12.2.0-14:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:gcc-12:gcc_12:12.2.0-14:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:gcc_12:gcc-12:12.2.0-14:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:gcc_12:gcc_12:12.2.0-14:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:gcc:gcc-12:12.2.0-14:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    },
+    {
+     "cpe": "cpe:2.3:a:gcc:gcc_12:12.2.0-14:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "foundBy": "dpkg-db-cataloger",
+   "id": "4cde5b0fdf1ba464",
+   "language": "",
+   "licenses": [],
+   "locations": [
+    {
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     },
+     "layerID": "sha256:320b08dba9b93e97c9a7419c787ccaa2c24c778efa1b0ef2420ea491efa762b0",
+     "path": "/var/lib/dpkg/status"
+    }
+   ],
+   "metadata": {
+    "architecture": "amd64",
+    "files": [],
+    "installedSize": 0,
+    "maintainer": "Debian",
+    "package": "gcc-12",
+    "source": "gcc-12",
+    "sourceVersion": "",
+    "version": "12.2.0-14"
+   },
+   "metadataType": "dpkg-db-entry",
+   "name": "gcc-12",
+   "purl": "pkg:deb/debian/gcc-12@12.2.0-14?arch=amd64&distro=debian-12&upstream=gcc-12",
+   "type": "deb",
+   "version": "12.2.0-14"
+  },
+  {
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:libc6:libc6:2.36-9\\+deb12u4:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "foundBy": "dpkg-db-cataloger",
+   "id": "f18d0408ac470d53",
+   "language": "",
+   "licenses": [],
+   "locations": [
+    {
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     },
+     "layerID": "sha256:320b08dba9b93e97c9a7419c787ccaa2c24c778efa1b0ef2420ea491efa762b0",
+     "path": "/var/lib/dpkg/status"
+    }
+   ],
+   "metadata": {
+    "architecture": "amd64",
+    "files": [],
+    "installedSize": 0,
+    "maintainer": "Debian",
+    "package": "libc6",
+    "source": "glibc",
+    "sourceVersion": "",
+    "version": "2.36-9+deb12u4"
+   },
+   "metadataType": "dpkg-db-entry",
+   "name": "libc6",
+   "purl": "pkg:deb/debian/libc6@2.36-9%2Bdeb12u4?arch=amd64&distro=debian-12&upstream=glibc",
+   "type": "deb",
+   "version": "2.36-9+deb12u4"
+  },
+  {
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:libstdc\\+\\+6:libstdc\\+\\+6:12.2.0-14:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "foundBy": "dpkg-db-cataloger",
+   "id": "880952ed215fd380",
+   "language": "",
+   "licenses": [],
+   "locations": [
+    {
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     },
+     "layerID": "sha256:320b08dba9b93e97c9a7419c787ccaa2c24c778efa1b0ef2420ea491efa762b0",
+     "path": "/var/lib/dpkg/status"
+    }
+   ],
+   "metadata": {
+    "architecture": "amd64",
+    "files": [],
+    "installedSize": 0,
+    "maintainer": "Debian",
+    "package": "libstdc++6",
+    "source": "gcc-12",
+    "sourceVersion": "",
+    "version": "12.2.0-14"
+   },
+   "metadataType": "dpkg-db-entry",
+   "name": "libstdc++6",
+   "purl": "pkg:deb/debian/libstdc%2B%2B6@12.2.0-14?arch=amd64&distro=debian-12&upstream=gcc-12",
+   "type": "deb",
+   "version": "12.2.0-14"
+  },
+  {
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:openssl:openssl:3.0.11-1\\~deb12u2:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "foundBy": "dpkg-db-cataloger",
+   "id": "512eb3e29c1c6233",
+   "language": "",
+   "licenses": [],
+   "locations": [
+    {
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     },
+     "layerID": "sha256:320b08dba9b93e97c9a7419c787ccaa2c24c778efa1b0ef2420ea491efa762b0",
+     "path": "/var/lib/dpkg/status"
+    }
+   ],
+   "metadata": {
+    "architecture": "amd64",
+    "files": [],
+    "installedSize": 0,
+    "maintainer": "Debian",
+    "package": "openssl",
+    "source": "openssl",
+    "sourceVersion": "",
+    "version": "3.0.11-1~deb12u2"
+   },
+   "metadataType": "dpkg-db-entry",
+   "name": "openssl",
+   "purl": "pkg:deb/debian/openssl@3.0.11-1~deb12u2?arch=amd64&distro=debian-12&upstream=openssl",
+   "type": "deb",
+   "version": "3.0.11-1~deb12u2"
+  },
+  {
+   "cpes": [
+    {
+     "cpe": "cpe:2.3:a:zlib1g:zlib1g:1\\:1.2.13.dfsg-1:*:*:*:*:*:*:*",
+     "source": "syft-generated"
+    }
+   ],
+   "foundBy": "dpkg-db-cataloger",
+   "id": "8d2009cffd0483da",
+   "language": "",
+   "licenses": [],
+   "locations": [
+    {
+     "accessPath": "/var/lib/dpkg/status",
+     "annotations": {
+      "evidence": "primary"
+     },
+     "layerID": "sha256:320b08dba9b93e97c9a7419c787ccaa2c24c778efa1b0ef2420ea491efa762b0",
+     "path": "/var/lib/dpkg/status"
+    }
+   ],
+   "metadata": {
+    "architecture": "amd64",
+    "files": [],
+    "installedSize": 0,
+    "maintainer": "Debian",
+    "package": "zlib1g",
+    "source": "zlib",
+    "sourceVersion": "",
+    "version": "1:1.2.13.dfsg-1"
+   },
+   "metadataType": "dpkg-db-entry",
+   "name": "zlib1g",
+   "purl": "pkg:deb/debian/zlib1g@1%3A1.2.13.dfsg-1?arch=amd64&distro=debian-12&upstream=zlib",
+   "type": "deb",
+   "version": "1:1.2.13.dfsg-1"
+  }
+ ],
+ "descriptor": {
+  "name": "syft",
+  "version": "1.57.0"
+ },
+ "distro": {
+  "id": "debian",
+  "name": "Debian GNU/Linux",
+  "prettyName": "Debian GNU/Linux 12 (bookworm)",
+  "version": "12 (bookworm)",
+  "versionID": "12"
+ },
+ "schema": {
+  "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-16.1.13.json",
+  "version": "16.1.13"
+ },
+ "source": {
+  "id": "0a0a77dc6a8fae8a32d51f3ad2f9573ef23fdf05e0b66440032b1cf807b29c5a",
+  "metadata": {
+   "architecture": "amd64",
+   "config": "eyJhcmNoaXRlY3R1cmUiOiAiYW1kNjQiLCAiY29uZmlnIjoge30sICJoaXN0b3J5IjogW3siY3JlYXRlZF9ieSI6ICJyZWZlcmVuY2UtYnVpbGRlcjoxLjAuMCJ9XSwgIm9zIjogImxpbnV4IiwgInJvb3RmcyI6IHsiZGlmZl9pZHMiOiBbInNoYTI1NjozMjBiMDhkYmE5YjkzZTk3YzlhNzQxOWM3ODdjY2FhMmMyNGM3NzhlZmExYjBlZjI0MjBlYTQ5MWVmYTc2MmIwIl0sICJ0eXBlIjogImxheWVycyJ9fQ==",
+   "imageID": "sha256:040e43a90d3d07f65082a271d13b0fa9d6dfd7dc5853424d2e971ed7cdd35b50",
+   "imageSize": 1344,
+   "layers": [
+    {
+     "digest": "sha256:320b08dba9b93e97c9a7419c787ccaa2c24c778efa1b0ef2420ea491efa762b0",
+     "mediaType": "application/vnd.oci.image.layer.v1.tar",
+     "size": 1344
+    }
+   ],
+   "manifest": "eyJjb25maWciOiB7ImRpZ2VzdCI6ICJzaGEyNTY6MDQwZTQzYTkwZDNkMDdmNjUwODJhMjcxZDEzYjBmYTlkNmRmZDdkYzU4NTM0MjRkMmU5NzFlZDdjZGQzNWI1MCIsICJtZWRpYVR5cGUiOiAiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5jb25maWcudjEranNvbiIsICJzaXplIjogMjI5fSwgImxheWVycyI6IFt7ImRpZ2VzdCI6ICJzaGEyNTY6MzIwYjA4ZGJhOWI5M2U5N2M5YTc0MTljNzg3Y2NhYTJjMjRjNzc4ZWZhMWIwZWYyNDIwZWE0OTFlZmE3NjJiMCIsICJtZWRpYVR5cGUiOiAiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5sYXllci52MS50YXIiLCAic2l6ZSI6IDEwMjQwfV0sICJtZWRpYVR5cGUiOiAiYXBwbGljYXRpb24vdm5kLm9jaS5pbWFnZS5tYW5pZmVzdC52MStqc29uIiwgInNjaGVtYVZlcnNpb24iOiAyfQ==",
+   "manifestDigest": "sha256:0a0a77dc6a8fae8a32d51f3ad2f9573ef23fdf05e0b66440032b1cf807b29c5a",
+   "mediaType": "application/vnd.oci.image.manifest.v1+json",
+   "os": "linux",
+   "repoDigests": [],
+   "tags": [],
+   "userInput": "/build/out/reference-builder.oci.tar"
+  },
+  "name": "/build/out/reference-builder.oci.tar",
+  "type": "image",
+  "version": "sha256:0a0a77dc6a8fae8a32d51f3ad2f9573ef23fdf05e0b66440032b1cf807b29c5a"
+ }
+}
