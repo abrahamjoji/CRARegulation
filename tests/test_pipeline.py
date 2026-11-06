@@ -126,7 +126,7 @@ class ManualComponents(unittest.TestCase):
 
 
 class KevGate(TempDirTest):
-    def gate(self, kev=None, vex="vex/rc200.openvex.json"):
+    def gate(self, kev=None, vex="vex/demo200.openvex.json"):
         args = ["--product", ROOT / "product.json", "--sbom", ROOT / "sample-data/sbom.syft.cdx.json",
                 "--scan", ROOT / "sample-data/scan.grype.json", "--vex", ROOT / vex,
                 "--out", self.tmp / "report.html", "--summary", self.tmp / "summary.json", "--gate", "--date", DEMO_DAY]
@@ -172,7 +172,7 @@ class Report(TempDirTest):
                 "--sbom", ROOT / "sample-data/sbom.syft.cdx.json",
                 "--manual", ROOT / "sbom/manual-components.cdx.json",
                 "--scan", ROOT / "sample-data/scan.grype.json",
-                "--vex", use("vex.json", "vex/rc200.openvex.json", vex),
+                "--vex", use("vex.json", "vex/demo200.openvex.json", vex),
                 "--kev", ROOT / "sample-data/kev.json",
                 "--risk", use("risk.json", "risk/risk-assessment.json", risk),
                 "--register", use("register.json", "vuln/register.json", register),
@@ -242,7 +242,7 @@ class Report(TempDirTest):
         self.assertEqual(next(i for i in summary["checklist"] if i["id"] == "I.1")["effective"], "met")
 
     def test_not_affected_without_reasoning_is_rejected(self):
-        vex = self.data("vex/rc200.openvex.json")
+        vex = self.data("vex/demo200.openvex.json")
         for st in vex["statements"]:
             if st["vulnerability"]["name"] == "CVE-2022-0847":
                 st["status"] = "not_affected"
@@ -266,10 +266,10 @@ class Report(TempDirTest):
 
     def test_non_scanner_vulnerability_becomes_a_finding(self):
         register = self.data("vuln/register.json")
-        register["entries"].append({"id": "VR-3", "type": "vulnerability", "vulnerability": "NORDWERK-2026-1", "source": "researcher",
+        register["entries"].append({"id": "VR-3", "type": "vulnerability", "vulnerability": "EXAMPLE-2026-1", "source": "researcher",
                                     "component": "motion-api", "version": "2.4.1", "severity": "High"})
         _, summary = self.report(register=register)
-        found = next(f for f in summary["findings"] if f["id"] == "NORDWERK-2026-1")
+        found = next(f for f in summary["findings"] if f["id"] == "EXAMPLE-2026-1")
         self.assertEqual((found["status"], found["source"]), ("needs_triage", "researcher"))
 
     def test_unassessed_entry_does_not_say_nothing_to_report(self):
@@ -303,7 +303,7 @@ class Report(TempDirTest):
 
     def test_missing_risk_assessment_blocks_release_only(self):
         args = ["--product", ROOT / "product.json", "--sbom", ROOT / "sample-data/sbom.syft.cdx.json",
-                "--scan", ROOT / "sample-data/scan.grype.json", "--vex", ROOT / "vex/rc200.openvex.json",
+                "--scan", ROOT / "sample-data/scan.grype.json", "--vex", ROOT / "vex/demo200.openvex.json",
                 "--kev", ROOT / "sample-data/kev.json", "--out", self.tmp / "r.html", "--summary", self.tmp / "s.json",
                 "--date", DEMO_DAY]
         self.assertEqual(run("cra_report.py", *args, "--gate").returncode, 0)
@@ -320,7 +320,7 @@ class Report(TempDirTest):
             args = ["--product", ROOT / "product.json",
                     "--sbom", path if name == "sbom.json" else ROOT / "sample-data/sbom.syft.cdx.json",
                     "--scan", path if name == "scan.json" else ROOT / "sample-data/scan.grype.json",
-                    "--vex", ROOT / "vex/rc200.openvex.json", "--kev", ROOT / "sample-data/kev.json",
+                    "--vex", ROOT / "vex/demo200.openvex.json", "--kev", ROOT / "sample-data/kev.json",
                     "--out", self.tmp / "r.html", "--summary", self.tmp / "s.json", "--date", DEMO_DAY, "--gate"]
             result = run("cra_report.py", *args)
             self.assertEqual(result.returncode, 2, name)
@@ -346,7 +346,7 @@ class Report(TempDirTest):
         self.assertNotIn("<img src=x>", page)
 
     def test_unscoped_vex_cannot_suppress_a_finding(self):
-        vex = self.data("vex/rc200.openvex.json")
+        vex = self.data("vex/demo200.openvex.json")
         for statement in vex["statements"]:
             statement.pop("products", None)
         result, summary = self.report("--gate", vex=vex)
@@ -354,7 +354,7 @@ class Report(TempDirTest):
         self.assertTrue(all(f["status"] == "needs_triage" for f in summary["findings"]))
 
     def test_duplicate_vex_is_rejected(self):
-        vex = self.data("vex/rc200.openvex.json")
+        vex = self.data("vex/demo200.openvex.json")
         vex["statements"].append(copy.deepcopy(vex["statements"][0]))
         result, _ = self.report("--gate", vex=vex)
         self.assertEqual(result.returncode, 2)
@@ -458,6 +458,95 @@ class Report(TempDirTest):
         self.assertEqual(result.returncode, 2)
         self.assertEqual(summary["counts"]["met"], 0)
         self.assertIn("classification_rationale is empty", result.stdout)
+
+
+class LargeScan(TempDirTest):
+    """A real kernel scan produces thousands of findings. The report has to stay usable."""
+
+    def build(self, *flags, count=5000):
+        matches = [{"vulnerability": {"id": f"CVE-2099-{n}", "severity": "High", "cvss": [], "fix": {"versions": []}},
+                    "artifact": {"name": "linux-kernel", "version": "5.15.0", "purl": "pkg:generic/linux-kernel@5.15.0"}}
+                   for n in range(count)]
+        matches.append({"vulnerability": {"id": "CVE-2099-LOW", "severity": "Low", "cvss": [], "fix": {"versions": []}},
+                        "artifact": {"name": "zlib", "version": "1.2.11", "purl": "pkg:conan/zlib@1.2.11"}})
+        scan, kev = self.tmp / "scan.json", self.tmp / "kev.json"
+        scan.write_text(json.dumps({"matches": matches}), encoding="utf-8")
+        kev.write_text(json.dumps({"vulnerabilities": [{"cveID": f"CVE-2099-{n}"} for n in (4000, 4001, 4002, 4003, 4004)]}), encoding="utf-8")
+        self.page_path, self.summary_path = self.tmp / "r.html", self.tmp / "s.json"
+        return run("cra_report.py", "--product", ROOT / "product.json", "--sbom", ROOT / "sample-data/sbom.syft.cdx.json",
+                   "--scan", scan, "--vex", ROOT / "vex/demo200.openvex.json", "--kev", kev,
+                   "--out", self.page_path, "--summary", self.summary_path, "--date", DEMO_DAY, *flags)
+
+    def test_report_is_limited_and_summary_is_complete(self):
+        result = self.build()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        page = self.page_path.read_text(encoding="utf-8")
+        summary = json.loads(self.summary_path.read_text(encoding="utf-8"))
+        self.assertLess(len(page), 300_000)
+        self.assertIn("Showing the 200 highest-priority of 5001 findings", page)
+        self.assertEqual(len(summary["findings"]), 5001)
+        self.assertEqual(page.count('class="sev-'), 200)
+        self.assertIn("2 more known-exploited findings", page)
+
+    def test_known_exploited_rank_first_in_table_and_components(self):
+        self.build()
+        page = self.page_path.read_text(encoding="utf-8")
+        summary = json.loads(self.summary_path.read_text(encoding="utf-8"))
+        self.assertLess(page.index("CVE-2099-4004</a>"), page.index("CVE-2099-0</a>"))
+        top = summary["by_component"][0]
+        self.assertEqual((top["component"], top["total"], top["kev"], top["untriaged"]), ("linux-kernel", 5000, 5, 5000))
+
+    def test_missing_fix_reads_properly(self):
+        self.build()
+        page = self.page_path.read_text(encoding="utf-8")
+        self.assertIn("The scan data lists no upstream fix.", page)
+        self.assertNotIn("upstream in none", page)
+
+    def test_gate_output_is_limited_but_complete_in_count(self):
+        result = self.build("--release-gate", count=300)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("more; see the summary file", result.stdout)
+        self.assertLess(result.stdout.count("\n"), 70)
+        self.assertIn("linux-kernel 5.15.0: 300 findings, 0 known exploited", result.stdout)
+
+
+class Presentation(TempDirTest):
+    def page(self, *flags, product=None):
+        path = ROOT / "product.json"
+        if product is not None:
+            path = self.tmp / "product.json"
+            path.write_text(json.dumps(product), encoding="utf-8")
+        out = self.tmp / "r.html"
+        result = run("cra_report.py", "--product", path, "--sbom", ROOT / "sample-data/sbom.syft.cdx.json",
+                     "--scan", ROOT / "sample-data/scan.grype.json", "--kev", ROOT / "sample-data/kev.json",
+                     "--out", out, "--summary", self.tmp / "s.json", "--date", DEMO_DAY, *flags)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return out.read_text(encoding="utf-8")
+
+    def test_report_loads_nothing_from_other_sites(self):
+        page = self.page()
+        self.assertNotIn("googleapis", page)
+        self.assertNotIn("gstatic", page)
+        self.assertNotRegex(page, r"<(link|script|img)[^>]+(href|src)=\"https?://")
+
+    def test_every_demo_report_is_labelled(self):
+        self.assertIn("curated sample data", self.page("--sample"))
+        self.assertIn("Demo product", self.page())
+
+    def test_real_product_has_no_demo_label(self):
+        product = json.loads((ROOT / "product.json").read_text(encoding="utf-8"))
+        product["demo"] = False
+        page = self.page(product=product)
+        self.assertNotIn("Demo product", page)
+        self.assertNotIn("curated sample data", page)
+
+
+class Workflow(unittest.TestCase):
+    def test_tools_are_pinned(self):
+        text = (ROOT / ".github/workflows/cra-pipeline.yml").read_text(encoding="utf-8")
+        self.assertNotIn("/main/install.sh", text)
+        self.assertNotRegex(text, r"uses: [^\s]+@v\d")
+        self.assertIn("sha256sum -c", text)
 
 
 class Article14Clock(unittest.TestCase):

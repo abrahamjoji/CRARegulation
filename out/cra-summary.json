@@ -32,8 +32,13 @@
     ],
     "ok": true
   },
+  "gate": {
+    "mode": "build",
+    "passed": true,
+    "failures": []
+  },
   "product": {
-    "product": "RC-200 robot arm controller",
+    "product": "DEMO-200 robot arm controller",
     "firmware_version": "2.4.1",
     "build_id": "ci-2026-11-05.17"
   },
@@ -45,6 +50,7 @@
       "id": "CVE-2022-0847",
       "component": "linux-kernel",
       "version": "5.15.0",
+      "purl": "pkg:generic/linux-kernel@5.15.0",
       "severity": "high",
       "status": "under_investigation",
       "kev": true,
@@ -55,6 +61,7 @@
       "id": "CVE-2022-37434",
       "component": "zlib",
       "version": "1.2.11",
+      "purl": "pkg:conan/zlib@1.2.11",
       "severity": "critical",
       "status": "needs_triage",
       "kev": false,
@@ -65,6 +72,7 @@
       "id": "CVE-2018-25032",
       "component": "zlib",
       "version": "1.2.11",
+      "purl": "pkg:conan/zlib@1.2.11",
       "severity": "high",
       "status": "needs_triage",
       "kev": false,
@@ -75,6 +83,7 @@
       "id": "CVE-2022-0778",
       "component": "openssl",
       "version": "3.0.1",
+      "purl": "pkg:conan/openssl@3.0.1",
       "severity": "high",
       "status": "affected",
       "kev": false,
@@ -85,6 +94,7 @@
       "id": "CVE-2022-25235",
       "component": "expat",
       "version": "2.4.1",
+      "purl": "pkg:conan/expat@2.4.1",
       "severity": "critical",
       "status": "not_affected",
       "kev": false,
@@ -95,6 +105,7 @@
       "id": "CVE-2022-32221",
       "component": "libcurl",
       "version": "7.83.0",
+      "purl": "pkg:conan/libcurl@7.83.0",
       "severity": "critical",
       "status": "not_affected",
       "kev": false,
@@ -244,6 +255,53 @@
     {
       "id": "VR-2026-002",
       "clock": null
+    }
+  ],
+  "by_component": [
+    {
+      "component": "linux-kernel",
+      "version": "5.15.0",
+      "total": 1,
+      "kev": 1,
+      "untriaged": 0,
+      "critical": 0,
+      "high": 1
+    },
+    {
+      "component": "zlib",
+      "version": "1.2.11",
+      "total": 2,
+      "kev": 0,
+      "untriaged": 2,
+      "critical": 1,
+      "high": 1
+    },
+    {
+      "component": "expat",
+      "version": "2.4.1",
+      "total": 1,
+      "kev": 0,
+      "untriaged": 0,
+      "critical": 1,
+      "high": 0
+    },
+    {
+      "component": "libcurl",
+      "version": "7.83.0",
+      "total": 1,
+      "kev": 0,
+      "untriaged": 0,
+      "critical": 1,
+      "high": 0
+    },
+    {
+      "component": "openssl",
+      "version": "3.0.1",
+      "total": 1,
+      "kev": 0,
+      "untriaged": 0,
+      "critical": 0,
+      "high": 1
     }
   ],
   "problems": []

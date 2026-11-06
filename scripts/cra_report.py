@@ -8,7 +8,7 @@ and one JSON summary for the technical file. Standard library only.
 Usage:
   python scripts/cra_report.py --product product.json \
       --sbom out/sbom.cdx.json --manual sbom/manual-components.cdx.json \
-      --scan out/scan.grype.json --vex vex/rc200.openvex.json \
+      --scan out/scan.grype.json --vex vex/demo200.openvex.json \
       --risk risk/risk-assessment.json --register vuln/register.json \
       --kev out/kev.json --out out/cra-report.html --gate
 
@@ -29,6 +29,9 @@ import cra_validation as validation
 DEADLINE = checks.APPLICATION_DATE
 REPORTING_START = checks.REPORTING_START
 SEV_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "negligible": 4, "unknown": 5}
+MAX_FINDING_ROWS = 200  # the JSON summary always keeps every finding
+MAX_ALERTS = 3
+MAX_GATE_LINES = 50
 STATUS_LABEL = {
     "needs_triage": "Needs triage",
     "under_investigation": "Investigating",
@@ -242,6 +245,8 @@ def build(args):
         "kev_loaded": kev_loaded,
         "scan_ok": scan_ok,
         "sbom": sbom,
+        "by_component": checks.component_summary(findings),
+        "demo": bool(product.get("demo")),
         "duties": checks.duties(product, today),
         "risk": ra if isinstance(ra, dict) else None,
         "risk_problems": risk_problems,
@@ -314,7 +319,7 @@ def render(d):
     p = d["product"]
     sev_cls = lambda s: f"sev-{s}"
     f_rows = []
-    for f in d["findings"]:
+    for f in d["findings"][:MAX_FINDING_ROWS]:
         flags = '<span class="tag kev">Known exploited</span>' if f["kev"] else ""
         detail = f["justification"] or ""
         if f["note"]:
@@ -339,7 +344,7 @@ def render(d):
             f'<td class="mono dim small">{esc(c["purl"])}</td><td class="num">{badge}</td></tr>'
         )
     rep_html = ""
-    for n, f in enumerate(d["reporting"]):
+    for n, f in enumerate(d["reporting"][:MAX_ALERTS]):
         exploited = f["exploited"] is True
         headline = "is being exploited in this product" if exploited else "is on the CISA known-exploited list"
         advice = ("Report it through the ENISA Single Reporting Platform. The register below tracks the deadlines."
@@ -358,12 +363,43 @@ def render(d):
         <li><b>Within 72 h</b><span>Notification: details, impact, mitigations so far</span></li>
         <li><b>14 days after fix</b><span>Final report: root cause, severity, corrective update</span></li>
       </ol>
-      <p class="small dim">Fix available upstream in {esc(f["fix"])}.</p>
+      <p class="small dim">{"The scan data lists no upstream fix." if f["fix"] == "none" else f"Fix available upstream in {esc(f['fix'])}."}</p>
     </section>"""
-    sample_banner = (
-        '<div class="banner">Demo with sample data. Manufacturer and product are fictional; '
-        'CVE records are real public vulnerabilities in the listed versions.</div>' if d["sample"] else ""
+    extra = d["reporting"][MAX_ALERTS:]
+    if extra:
+        codes = " ".join(f"<code>{esc(f['id'])}</code>" for f in extra)
+        rep_html += f"""
+    <section class="alert" aria-labelledby="rep-more">
+      <div class="alert-head">
+        <p class="eyebrow">Reporting check · CRA Article 14</p>
+        <h2 id="rep-more">{len(extra)} more known-exploited findings to assess</h2>
+        <p class="small">{codes}</p>
+      </div>
+    </section>"""
+    shown = min(len(d["findings"]), MAX_FINDING_ROWS)
+    truncated = (
+        f'<p class="small dim" style="margin:0 0 10px">Showing the {shown} highest-priority of {len(d["findings"])} findings. '
+        'Filters apply to these rows. Every finding is in <code>cra-summary.json</code>.</p>'
+        if len(d["findings"]) > shown else ""
     )
+    comp_rows = "".join(
+        f'<tr><td><code>{esc(r["component"])}</code> <span class="mono dim">{esc(r["version"])}</span></td>'
+        f'<td class="num">{r["total"]}</td><td class="num">{r["kev"]}</td><td class="num">{r["untriaged"]}</td>'
+        f'<td class="num">{r["critical"]}</td><td class="num">{r["high"]}</td></tr>'
+        for r in d["by_component"]
+    )
+    if d["sample"]:
+        sample_banner = (
+            '<div class="banner">Demo with curated sample data. The company and product are fictional. '
+            'The CVE records are real, but this is a small hand-picked subset: a real scan of these versions finds far more.</div>'
+        )
+    elif d["demo"]:
+        sample_banner = (
+            '<div class="banner">Demo product. The company and product are fictional, and the triage decisions are illustrative. '
+            'Findings come from a live scan of the declared component versions, and most are not triaged.</div>'
+        )
+    else:
+        sample_banner = ""
     kev_banner = (
         "" if d["kev_loaded"] else
         '<div class="banner crit">The known-exploited check did not run: the KEV catalogue was missing, '
@@ -400,9 +436,9 @@ def render(d):
   --accent: #1d4fa3; --accent-soft: #e6eefb;
   --crit: #b4232c; --crit-soft: #fbe9ea; --warn: #a15c00; --warn-soft: #fdf1df;
   --good: #1e7a46; --good-soft: #e3f4ea; --info-soft: #eef0f3;
-  --display: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --display: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
   color-scheme: light;
 }}
 @media (prefers-color-scheme: dark) {{
@@ -527,6 +563,15 @@ footer {{ font-size: 12.5px; color: var(--muted); }}
   </section>
   {rep_html}
   {problem_html}
+  <section class="card" aria-labelledby="c-h">
+    <h2 id="c-h">Findings by component</h2>
+    <p class="small dim" style="margin:4px 0 12px">Where the work is. Known-exploited findings come first.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Component</th><th class="num">Findings</th><th class="num">Known exploited</th><th class="num">Untriaged</th><th class="num">Critical</th><th class="num">High</th></tr></thead>
+      <tbody>{comp_rows or '<tr><td colspan="6" class="dim">No findings.</td></tr>'}</tbody>
+    </table></div>
+  </section>
+
   <section class="card" aria-labelledby="f-h">
     <div class="sec-head">
       <div><h2 id="f-h">Vulnerability findings</h2><p class="small dim" style="margin:4px 0 0">Scanner matches and register entries, with VEX triage. Not-affected findings keep their written justification as evidence.</p></div>
@@ -537,6 +582,7 @@ footer {{ font-size: 12.5px; color: var(--muted); }}
         <button type="button" id="flt-na" data-f="not_affected" aria-pressed="false">Not affected</button>
       </div>
     </div>
+    {truncated}
     <div class="tablewrap"><table id="findings">
       <thead><tr><th>Vulnerability</th><th>Component</th><th>Severity</th><th>Fixed in</th><th>VEX status</th></tr></thead>
       <tbody>{"".join(f_rows)}</tbody>
@@ -645,6 +691,7 @@ def main():
     summary["findings"] = [{k: f[k] for k in ("id", "component", "version", "purl", "severity", "status", "kev", "exploited", "source")} for f in d["findings"]]
     summary["checklist"] = [{k: i.get(k, "") for k in ("id", "status", "effective", "flag")} for i in d["items"]]
     summary["register"] = [{"id": r["entry"].get("id"), "clock": r["clock"]} for r in d["register"]]
+    summary["by_component"] = d["by_component"]
     summary["problems"] = d["risk_problems"] + d["product_problems"] + d["register_problems"]
     Path(args.summary).parent.mkdir(parents=True, exist_ok=True)
     Path(args.summary).write_text(json.dumps(summary, indent=2), encoding="utf-8")
@@ -652,13 +699,17 @@ def main():
     print(f"CRA readiness {d['score']}% | {len(d['components'])} components | "
           f"{d['open']} findings need action | {d['untriaged']} untriaged | "
           f"{len(d['reporting'])} reporting check(s)")
+    for r in d["by_component"][:5]:
+        print(f"  {r['component']} {r['version']}: {r['total']} findings, {r['kev']} known exploited, {r['untriaged']} untriaged")
     print(f"Report: {args.out}\nSummary: {args.summary}")
 
     if args.gate or args.release_gate:
         if failures:
             print(f"GATE FAILED with {len(failures)} problem(s):")
-            for failure in failures:
+            for failure in failures[:MAX_GATE_LINES]:
                 print(f"  - {failure}")
+            if len(failures) > MAX_GATE_LINES:
+                print(f"  ... and {len(failures) - MAX_GATE_LINES} more; see the summary file")
             sys.exit(2)
         print("Release gate passed." if args.release_gate else "Gate passed.")
 

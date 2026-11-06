@@ -1,6 +1,7 @@
 {
-  "product": "RC-200 robot arm controller",
-  "manufacturer": "Nordwerk Robotics GmbH (fictional)",
+  "demo": true,
+  "product": "DEMO-200 robot arm controller",
+  "manufacturer": "Example Robotics GmbH (fictional)",
   "firmware_version": "2.4.1",
   "build_id": "ci-2026-11-05.17",
   "cra_class": "Default (self-assessment, Module A)",
@@ -10,7 +11,7 @@
   "support_period_end": "2032-12-31",
   "support_period_rationale": "",
   "triage_policy": {"max_investigation_days": 14},
-  "security_contact": "security@nordwerk.example",
+  "security_contact": "security@example.com",
   "annex_i": {
     "part_1": [
       {"id": "I.2(a)", "req": "No known exploitable vulnerabilities at release", "status": "partial", "evidence": "Scan in CI; open findings are listed in this report"},

@@ -19,16 +19,56 @@ permissions:
 
 env:
   # Replace the demo inventory with the SBOM from your built product.
-  PRODUCT_NAME: RC-200
+  PRODUCT_NAME: DEMO-200
   FIRMWARE_DIR: firmware
   PRODUCT_FILE: product.json
   MANUAL_SBOM: sbom/manual-components.cdx.json
-  VEX_FILE: vex/rc200.openvex.json
+  VEX_FILE: vex/demo200.openvex.json
   RISK_FILE: risk/risk-assessment.json
   REGISTER_FILE: vuln/register.json
+  DEMO_DATE: "2026-11-05"
 
 jobs:
+  # Tests the scripts, then builds the labelled demo report from the curated sample data.
+  demo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Test the pipeline scripts
+        run: python -m unittest discover tests
+
+      - name: Build the demo report from sample data
+        run: |
+          python scripts/cra_report.py \
+            --product product.json \
+            --sbom sample-data/sbom.syft.cdx.json \
+            --manual sbom/manual-components.cdx.json \
+            --scan sample-data/scan.grype.json \
+            --vex vex/demo200.openvex.json \
+            --risk risk/risk-assessment.json \
+            --register vuln/register.json \
+            --kev sample-data/kev.json \
+            --out demo/cra-report.html \
+            --summary demo/cra-summary.json \
+            --sample --date "$DEMO_DATE" --gate
+
+      - name: Keep the demo report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cra-demo-report-${{ github.sha }}
+          path: demo/
+          retention-days: 90
+
   cra:
+    needs: demo
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -40,11 +80,10 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Clear checked-in demo output and test scripts
+      - name: Clear checked-in demo output
         run: |
           rm -rf -- out
           mkdir -p out
-          python -m unittest discover tests
 
       # Digests retrieved from the official release asset APIs, 2026-11-06.
       # Review version + digest together. Never fetch a mutable install.sh.
@@ -53,8 +92,8 @@ jobs:
           mkdir -p "$RUNNER_TEMP/cra-tools" out
           curl --proto '=https' --tlsv1.2 -fsSL --retry 3 --max-time 180 https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz -o "$RUNNER_TEMP/syft.tar.gz"
           curl --proto '=https' --tlsv1.2 -fsSL --retry 3 --max-time 180 https://github.com/anchore/grype/releases/download/v0.121.2/grype_0.121.2_linux_amd64.tar.gz -o "$RUNNER_TEMP/grype.tar.gz"
-          echo "9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704  $RUNNER_TEMP/syft.tar.gz" | sha256sum --check --strict
-          echo "9c8965ced9df657e5e851c14021bae838802f711edd7a48f9bc3c923a8d28f12  $RUNNER_TEMP/grype.tar.gz" | sha256sum --check --strict
+          echo "9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704  $RUNNER_TEMP/syft.tar.gz" | sha256sum -c --strict
+          echo "9c8965ced9df657e5e851c14021bae838802f711edd7a48f9bc3c923a8d28f12  $RUNNER_TEMP/grype.tar.gz" | sha256sum -c --strict
           tar -xzf "$RUNNER_TEMP/syft.tar.gz" -C "$RUNNER_TEMP/cra-tools" syft
           tar -xzf "$RUNNER_TEMP/grype.tar.gz" -C "$RUNNER_TEMP/cra-tools" grype
           echo "$RUNNER_TEMP/cra-tools" >> "$GITHUB_PATH"
