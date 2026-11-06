@@ -25,7 +25,7 @@ flowchart TB
 
 | Concern | Code | Notes |
 | --- | --- | --- |
-| Build metadata collection | `cra/collector/` | Parses output of tools the customer already ran |
+| Build metadata collection | `cra/collector/` | Parses actual Conan/CMake/pip-inspect output; snapshots explicitly selected directories |
 | Inventory normalization and reconciliation | `cra/engine/reconcile.py` | Keeps states, conflicts and sources separate |
 | Scanner adapters | `cra/collector/container.py` (Syft), `cra/engine/grype.py` | Narrow; pin version and output handling together |
 | VEX and triage | `cra/engine/vex.py` | Exact scope, author allow-list |
@@ -41,7 +41,7 @@ flowchart TB
 
 **Existing scanners behind narrow adapters.** Syft and Grype do package identification and matching. This tool adds what they lack: build-aware reconciliation, provenance, explanation and policy. A scanner version outside the verified set makes the result unsupported unless explicitly allowed.
 
-**The collector parses; it never builds.** It reads Conan's JSON and CMake's File API replies from the customer's real build. It does not resolve dependencies itself, and it reads recipes with `ast`, without executing them.
+**The collector parses; it never builds.** It reads Conan JSON, pip inspect JSON and CMake File API replies from the customer's real build. Generic directory discovery uses Syft over a bounded snapshot. It does not resolve dependencies itself, and it reads recipes with `ast`, without executing them.
 
 **Identity comes from evidence, not from names.** A CMake link path identifies a package only when it falls inside a package folder named by the Conan graph for the same configuration. A target called `ZLIB::ZLIB` proves nothing by itself.
 

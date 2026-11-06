@@ -34,6 +34,9 @@ def apply_cpe_hints(sbom):
     """Add curated CPEs. Returns the bom-refs that received one."""
     hinted = set()
     for component in sbom["components"]:
+        # These hints describe native Conan/generic packages, not similarly named PyPI packages.
+        if not component.get("purl", "").startswith(("pkg:conan/", "pkg:generic/")):
+            continue
         template = CPE_HINTS.get(component["name"].lower())
         if template and "cpe" not in component and component.get("version"):
             component["cpe"] = template.format(version=component["version"])
@@ -186,10 +189,10 @@ def scan_inventory(inventory, collection_root, tools, work_dir, store):
         write_json(path, sbom)
         plans.append(("build-derived", path, tools.add_generated_cpes))
     for artifact in inventory["artifacts"]:
-        if artifact.get("kind") == "image" and artifact.get("evidence"):
+        if artifact.get("kind") in ("image", "directory") and artifact.get("evidence"):
             record = next((item for item in inventory["evidence"] if item["id"] == artifact["evidence"]), None)
             if record:
-                plans.append((f"image:{artifact['id']}", Path(collection_root) / record["path"], False))
+                plans.append((f"{artifact['kind']}:{artifact['id']}", Path(collection_root) / record["path"], False))
     for label, path, generated in plans:
         output = work_dir / f"grype-{label.replace(':', '-')}.json"
         document, problems = run_scan(path, tools, output, generated_cpes=generated)

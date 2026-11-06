@@ -63,7 +63,7 @@ def run_syft(image, tools, destination):
         env = tool_environment({"HOME": home, "XDG_CACHE_HOME": home, "SYFT_CHECK_FOR_APP_UPDATE": "false",
                                 "SYFT_TMP_DIR": home}, tools.env_passthrough)
         return run_tool([tools.syft, "scan", scheme_argument(image), "-o", f"syft-json={destination}", "--scope", "squashed", "-q"],
-                        limits=limits, env=env)
+                        limits=limits, env=env, cwd=home)
 
 
 def parse_syft(document, image, evidence_id):

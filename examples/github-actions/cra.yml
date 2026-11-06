@@ -60,7 +60,10 @@ jobs:
         env:
           CRA_TOKEN: ${{ secrets.CRA_TOKEN }}
         run: |
-          docker run --rm -e CRA_TOKEN --user "$(id -u):$(id -g)" -v "$PWD:/workspace" -w /workspace "$COLLECTOR_IMAGE" analyze --hosted --config cra.toml || echo "analysis exit code $?"
+          status=0
+          docker run --rm -e CRA_TOKEN --user "$(id -u):$(id -g)" -v "$PWD:/workspace" -w /workspace "$COLLECTOR_IMAGE" analyze --hosted --config cra.toml || status=$?
+          # Only an incomplete scan proceeds to the gate. Auth/service failures fail this step.
+          if [ "$status" -ne 0 ] && [ "$status" -ne 20 ]; then exit "$status"; fi
       - name: Gate on the retrieved result
         run: docker run --rm --network none --user "$(id -u):$(id -g)" -v "$PWD:/workspace" -w /workspace "$COLLECTOR_IMAGE" gate --result .cra/analysis --mode build --expect-revision "$GITHUB_SHA" --record .cra/gate.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

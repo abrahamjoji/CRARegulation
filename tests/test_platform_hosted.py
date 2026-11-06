@@ -26,6 +26,25 @@ try:
 except ImportError:
     HAVE_HOSTED = False
 
+# TestClient's thread bridge requires socketpair wakeups. Some restricted execution
+# environments allow creating sockets but deny send(), otherwise hanging the suite.
+HOSTED_SKIP_REASON = "hosted extras are not installed"
+if HAVE_HOSTED:
+    try:
+        left, right = socket.socketpair()
+        try:
+            left.settimeout(0.2)
+            right.settimeout(0.2)
+            left.send(b"x")
+            if right.recv(1) != b"x":
+                raise OSError("socketpair wakeup failed")
+        finally:
+            left.close()
+            right.close()
+    except OSError as exc:
+        HAVE_HOSTED = False
+        HOSTED_SKIP_REASON = f"hosted tests require socketpair wakeups; environment denied them: {exc}"
+
 if HAVE_HOSTED:
     from cra.collector import hosted_client
     from cra.common.errors import AuthError, ConfigError, OperationalError
@@ -50,7 +69,7 @@ def tar_gz(members):
 MINIMAL = {"collection/collection.json": b"{}", "collection/manifest.json": b"{}"}
 
 
-@unittest.skipUnless(HAVE_HOSTED, "hosted extras are not installed")
+@unittest.skipUnless(HAVE_HOSTED, HOSTED_SKIP_REASON)
 class Base(unittest.TestCase):
     def setUp(self):
         self._t = tempfile.TemporaryDirectory()
@@ -389,7 +408,7 @@ def free_port():
         return sock.getsockname()[1]
 
 
-@unittest.skipUnless(HAVE_HOSTED, "hosted extras are not installed")
+@unittest.skipUnless(HAVE_HOSTED, HOSTED_SKIP_REASON)
 class RealServerClient(Base):
     """A real uvicorn process, a real worker process and the real CLI client over loopback HTTP."""
 
@@ -466,7 +485,7 @@ class RealServerClient(Base):
         self.assertEqual(self.run_cli("gate", "--result", str(self.ws.analysis_dir))[0], 20)
 
 
-@unittest.skipUnless(HAVE_HOSTED, "hosted extras are not installed")
+@unittest.skipUnless(HAVE_HOSTED, HOSTED_SKIP_REASON)
 class OperatorCommands(unittest.TestCase):
     def test_documented_admin_commands_run_and_issue_a_working_token(self):
         with tempfile.TemporaryDirectory() as work:
@@ -488,7 +507,7 @@ class OperatorCommands(unittest.TestCase):
             self.assertEqual(admin("purge-expired"), "0")
 
 
-@unittest.skipUnless(HAVE_HOSTED, "hosted extras are not installed")
+@unittest.skipUnless(HAVE_HOSTED, HOSTED_SKIP_REASON)
 class ClientRules(unittest.TestCase):
     def test_url_rules(self):
         self.assertEqual(hosted_client.check_url("https://x.example/"), "https://x.example")

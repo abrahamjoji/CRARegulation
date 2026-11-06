@@ -2,16 +2,16 @@
 
 A CI-integrated tool that collects dependency evidence from a real build, reconciles it into one inventory, matches known vulnerabilities, explains each finding, and gives CI a clear outcome. It supports Cyber Resilience Act readiness work with traceable evidence.
 
-It does not certify conformity, replace product testing, decide legal applicability, prove exploitability, or perform automatic root-cause analysis. It does not discover every dependency: it supports Linux with Conan 2, CMake and OCI images, and reports what it could not see.
+It does not certify conformity, replace product testing, decide legal applicability, prove exploitability, or perform automatic root-cause analysis. It does not discover every dependency: it supports Linux projects through Python environment metadata, optional Conan 2/CMake evidence, selected filesystem directories, ELF artifacts and OCI images, and reports what it could not see.
 
-Status: first version, on a development branch. See [what is verified and what is not](docs/IMPLEMENTATION_CHECKLIST.md) before relying on any part of it.
+Status: first version, on a development branch. See [the implementation audit](docs/PROJECT_AUDIT.md) and [what is verified and what is not](docs/IMPLEMENTATION_CHECKLIST.md) before relying on any part of it.
 
 ## How it works
 
 ```mermaid
 flowchart LR
-  B[Your build] --> P[cra prepare]
-  P --> C[CMake and Conan run]
+  B[Customer pipeline] --> P[Optional cra prepare for CMake]
+  P --> C[Customer build: Python, C, C++ or other]
   C --> K[cra collect]
   K --> E[Evidence bundle]
   E --> A[cra analyze: local or hosted]
@@ -45,6 +45,10 @@ For the hosted service and tests, install the locked dependencies:
 ```bash
 .venv/bin/pip install --require-hashes -r requirements/dev.lock
 ```
+
+## Python, C, C++ and other projects
+
+Collection is evidence-based, not selected by a language flag. Python uses captured `pip inspect` metadata; C/C++ use native build/artifact evidence; generic directory and container scans use Syft's package detectors. Conan and CMake are optional. See [language support and runnable configuration examples](docs/LANGUAGE_SUPPORT.md).
 
 ## Try it on the reference customer build
 

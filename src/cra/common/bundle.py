@@ -15,6 +15,34 @@ MANIFEST_SCHEMA = "cra.evidence-manifest/1"
 SAFE_MAX_TEXT = 512 * 1024 * 1024
 
 
+def reset_output(destination, kind, protected=()):
+    """Only replace recognized output bundles, never unrelated customer files."""
+    destination = Path(destination)
+    resolved = destination.resolve()
+    for path in protected:
+        if path is not None and Path(path).resolve().is_relative_to(resolved):
+            raise UntrustedInputError("output_overlaps_input", "output would overwrite an input or working directory")
+    if destination.is_symlink():
+        raise UntrustedInputError("output_unsafe", "output directory must not be a symlink")
+    if destination.exists():
+        if not destination.is_dir():
+            raise UntrustedInputError("output_unsafe", "output path is not a directory")
+        if any(destination.iterdir()):
+            manifest = destination / MANIFEST
+            if not manifest.is_file() or manifest.is_symlink():
+                raise UntrustedInputError("output_unsafe", "refusing to replace a nonempty directory without a CRA output manifest")
+            metadata = read_json(manifest)
+            if not isinstance(metadata, dict) or metadata.get("kind") != kind:
+                raise UntrustedInputError("output_unsafe", "existing output has a different bundle kind")
+            if any(path.is_symlink() for path in destination.rglob("*")):
+                raise UntrustedInputError("output_unsafe", "existing output contains symlinks")
+            if any(problem.startswith("unlisted:") for problem in verify_manifest(destination)):
+                raise UntrustedInputError("output_unsafe", "existing output contains unlisted files; use a new destination")
+            shutil.rmtree(destination)
+    destination.mkdir(parents=True, exist_ok=True)
+    return destination
+
+
 class EvidenceStore:
     """Copies raw tool and collector output into evidence/, redacting text content."""
 

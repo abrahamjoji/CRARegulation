@@ -248,7 +248,7 @@ def _shipping(collection, components):
     artifacts = {item["id"]: item for item in collection["artifacts"]}
     observation_by_id = {item["id"]: item for item in collection["observations"]}
     shipped_outputs = {item["path"]: item for item in collection["artifacts"] if item.get("kind") == "file" and item.get("shipped")}
-    final_complete = any(row.get("role") == "final" and row.get("status") == "complete" for row in collection["sources"] if row.get("source") == "image")
+    final_complete = any(row.get("role") == "final" and row.get("status") == "complete" for row in collection["sources"] if row.get("source") in ("image", "directory"))
     vendored = _vendored_shipping(collection, shipped_outputs)
     for component in components.values():
         reasons_yes, reasons_no = [], []
@@ -259,7 +259,9 @@ def _shipping(collection, components):
             source = observation.get("source")
             artifact = artifacts.get(observation.get("artifact")) or {}
             if observation.get("state") == "shipped":
-                reasons_yes.append(f"Present in final image {observation.get('artifact')} at {observation.get('location')}.")
+                reasons_yes.append(f"Detected in final deployment inventory {observation.get('artifact')} at {observation.get('location')}.")
+            elif source == "python-inspect" and observation.get("shipped_claim") is True:
+                reasons_yes.append("Customer identifies this inspected Python environment as shipped; installed distribution metadata was observed.")
             elif source == "artifact-signature" and artifact.get("shipped"):
                 reasons_yes.append(f"Version string found in shipped artifact {artifact['id']}.")
             elif source == "artifact-needed" and artifact.get("shipped"):
@@ -401,7 +403,7 @@ def export_cyclonedx(inventory, *, only_for_scan=False):
     for component in inventory["components"]:
         identity = component["identity"]
         sources = {observations[oid]["source"] for oid in component["observations"] if oid in observations}
-        if only_for_scan and (not identity["version"] or all(source.startswith("image:") for source in sources)):
+        if only_for_scan and (not identity["version"] or all(source.startswith(("image:", "directory:")) for source in sources)):
             continue
         record = {"type": "library", "bom-ref": component["id"], "name": identity["name"], "purl": identity["purl"],
                   "properties": [{"name": "cra:shipped", "value": component["presence"]["shipped"]}, {"name": "cra:scope", "value": component["scope"]}]}

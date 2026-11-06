@@ -1,12 +1,11 @@
 """cra analyze, local engine: inventory, scan, explain, evaluate, write a result bundle."""
 import datetime as dt
-import shutil
 import tempfile
 from pathlib import Path
 
 from .. import __version__
 from ..common import purl as purls
-from ..common.bundle import EvidenceStore, verify_manifest, write_manifest
+from ..common.bundle import EvidenceStore, reset_output, verify_manifest, write_manifest
 from ..common.errors import UntrustedInputError, diagnostic
 from ..common.safety import read_json, sha256_file, stable_id, write_json
 from . import grype, kev, policy as policy_module, readiness as readiness_module, reconcile, report, vex
@@ -153,9 +152,9 @@ def run_analysis(collection_dir, analysis_settings, tools, destination, kev_path
     if problems:
         raise UntrustedInputError("collection_integrity", "collection manifest does not match its files: " + "; ".join(problems[:5]))
     collection = reconcile.validate_collection(read_json(collection_dir / "collection.json"))
-    if destination.exists():
-        shutil.rmtree(destination)
-    destination.mkdir(parents=True)
+    reset_output(destination, "analysis", protected=[collection_dir, Path.cwd(), analysis_settings.policy,
+                                                   analysis_settings.kev, analysis_settings.product_file, analysis_settings.risk_file,
+                                                   analysis_settings.register_file] + analysis_settings.vex)
     store = EvidenceStore(destination)
     policy, policy_identity = policy_module.load_policy(analysis_settings.policy)
     inventory = reconcile.reconcile(collection)

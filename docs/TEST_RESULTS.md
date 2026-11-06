@@ -2,6 +2,26 @@
 
 For reviewers. Recorded on 6 November 2026 on Kali Linux, x86-64, GCC 16.2.0. No GitHub Actions run, Docker build or customer build is included. Vulnerability counts come from one database snapshot and will change.
 
+## Cross-language audit verification
+
+The follow-up audit added Python pip-inspect and language-independent directory collection, output safety, configuration validation and gate consistency checks. Current local verification:
+
+| Check | Result |
+| --- | --- |
+| `.tools/venv3.12/bin/python -m unittest discover tests` | 300 ran: 247 passed, 53 skipped |
+| Non-hosted routine tests, explicitly selected | 247 ran, 247 passed |
+| `CRA_INTEGRATION=1 ... -m unittest discover -s tests/integration -p test_language_collectors.py -v` | 3 ran, 3 passed with actual tools |
+| Real Python requirements directory → Syft → Grype → report/gate | 2 components, 11 findings; every finding joined inventory; gate correctly returned 10 |
+| Mixed Conan/CMake/image/Python evidence | Shared inventory and policy gate passed the integration assertions with fixture scanners |
+| YAML and embedded shell syntax | Repository workflows/action, both customer examples and Compose parsed; shell syntax passed |
+| `git diff --check` | Passed |
+
+The 53 skips comprise 14 opt-in integration tests and 39 hosted tests. This execution environment permits creating a socket pair but denies writing to it (`PermissionError: Operation not permitted`). Both Starlette TestClient and a direct ASGI test stalled when they needed thread-to-event-loop wakeups. Hosted tests now probe that capability and skip explicitly instead of hanging. They remain enabled on CI/hosts that permit socket operations. This review does **not** claim a new hosted end-to-end verification in this environment.
+
+The three real-tool checks create an isolated Python environment and capture real pip inspect JSON, scan a Python requirements directory with Syft 1.57.0, and compile/inspect actual C and C++ ELF binaries without Conan. The native artifact-only case correctly remains incomplete when package versions cannot be identified. No dependency installations from the network are required for these three checks.
+
+The previous results below are historical records from the initial implementation, not substitutes for the current environmental limits. Docker builds, external hosted CI and customer software remain unverified here.
+
 ## Summary
 
 | Suite | Command | Result |

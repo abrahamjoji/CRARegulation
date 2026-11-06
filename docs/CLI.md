@@ -1,6 +1,6 @@
 # Integration guide and CLI reference
 
-For engineers adding the tool to a Linux CI build with Conan 2 and CMake.
+For engineers adding the tool to a Linux CI build. Python, C, C++ and generic directory/image evidence use the same collect/analyze/gate path; see [language support](LANGUAGE_SUPPORT.md). Conan and CMake are optional.
 
 ## Order of operations
 
@@ -24,7 +24,9 @@ Writes `<build dir>/.cmake/api/v1/query/client-cra/query.json` for each configur
 
 ### `cra collect`
 
-Reads only what `cra.toml` names, inside `scope.roots`. It writes `<output.dir>/collection/` with `collection.json`, `evidence/` and `manifest.json`. A required source that is missing, partial, unsupported or failed makes it exit 20, with the reason listed.
+Python-only projects need no preparation step: capture `python -m pip inspect --local > pip-inspect.json` from the actual environment and configure `pip_inspect`.
+
+Reads only what `cra.toml` names, inside `scope.roots`. It writes `<output.dir>/collection/` with `collection.json`, `evidence/` and `manifest.json`. Existing nonempty destinations are replaced only when recognized as CRA outputs without unlisted files; unrelated directories and input/output overlaps are refused. A required source that is missing, partial, unsupported or failed makes it exit 20, with the reason listed.
 
 ### `cra analyze`
 
@@ -86,7 +88,8 @@ Schema: [`src/cra/schemas/config.schema.json`](../src/cra/schemas/config.schema.
 | `[source]` | `revision`: a value, or `env:GITHUB_SHA`. Otherwise read from git |
 | `[scope]` | `roots`: required list of directories the collector may read |
 | `[output]` | `dir` |
-| `[[configurations]]` | `id`, `conan_graph`, `conan_manifest`, `conan_lockfile`, `cmake_build_dir`, `cmake_config`, `required` |
+| `[[configurations]]` | `id`, `conan_graph`, `conan_manifest`, `conan_lockfile`, `cmake_build_dir`, `cmake_config`, `pip_inspect`, `pip_inspect_shipped`, `pip_inspect_scope`, `required` |
+| `[[directories]]` | `id`, `path`, `role` (`source`, `final`, `build-stage`), `required` |
 | `[[images]]` | `id`, `role` (`final` or `build-stage`), one of `archive` or `reference`, `format`, `expected_digest`, `required` |
 | `[[artifacts]]` | `id`, `path`, `configuration`, `shipped`, `required` |
 | `[components]` | `records`: component record files |

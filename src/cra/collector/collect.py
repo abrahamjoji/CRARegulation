@@ -5,11 +5,11 @@ import tempfile
 from pathlib import Path
 
 from .. import __version__
-from ..common.bundle import EvidenceStore, write_manifest
+from ..common.bundle import EvidenceStore, reset_output, write_manifest
 from ..common.errors import ConfigError, UntrustedInputError, diagnostic
 from ..common.safety import Limits, read_json, run_tool, sha256_bytes, tool_environment, write_json
 from . import artifact as artifact_module
-from . import cmake, conan, container, records as records_module
+from . import cmake, conan, container, directory as directory_module, python_env, records as records_module
 
 COLLECTION_SCHEMA = "cra.collection/1"
 
@@ -188,12 +188,61 @@ def _collect_records(config, store, out):
         out["sources"].append(source_status("customer-record", path.name, "complete", evidence=evidence))
 
 
+def _collect_python(configuration, config, store, out):
+    path = configuration.pip_inspect
+    if path is None:
+        return
+    try:
+        config.scope.require(path, "pip_inspect")
+        document = read_json(path)
+        evidence = store.add_json("collector-input", f"python:{configuration.id}", document,
+                                  f"python-{configuration.id}.inspect.json", original_bytes=path.read_bytes(), adapter="pip-inspect-v1")
+        parsed = python_env.collect_inspect(document, configuration, evidence)
+        artifact_id = f"python-env:{configuration.id}"
+        out["artifacts"].append({"id": artifact_id, "kind": "python-environment", "path": str(path),
+                                 "name": configuration.id, "sha256": sha256_bytes(path.read_bytes()), "bytes": path.stat().st_size,
+                                 "configuration": configuration.id, "shipped": configuration.pip_inspect_shipped,
+                                 "format": "pip-inspect/1", "evidence": evidence,
+                                 "limitations": ["Hash identifies the captured metadata, not an attestation of the deployed environment."]})
+        for observation in parsed["observations"]:
+            observation["artifact"] = artifact_id
+        out["observations"] += parsed["observations"]
+        out["edges"] += parsed["edges"]
+        out["configurations"][configuration.id]["python"] = parsed["build"]
+        out["limitations"] += [{"subject": configuration.id, "source": "python-inspect", "message": note} for note in parsed["limitations"]]
+        out["sources"].append(source_status("python-inspect", configuration.id, "partial" if parsed["problems"] else "complete",
+                                            "; ".join(parsed["problems"])[:2000], configuration.required, evidence=evidence))
+    except UntrustedInputError as exc:
+        out["sources"].append(source_status("python-inspect", configuration.id, "failed", str(exc), configuration.required, code=exc.code))
+
+
+def _collect_directories(config, store, out, destination):
+    for directory in config.directories:
+        try:
+            config.scope.require(directory.path, "directory")
+            if directory.path.is_relative_to(config.output_dir) or directory.path.is_relative_to(destination.resolve()):
+                raise UntrustedInputError("directory_is_output", "directory input must not be a CRA output directory")
+            record, observations, status, reason, tool = directory_module.collect_directory(
+                directory, config.tools, store, excluded=(config.output_dir, destination.resolve()))
+            out["artifacts"].append(record)
+            out["observations"] += observations
+            if tool and tool not in out["adapters"]:
+                out["adapters"].append(tool)
+            out["sources"].append(source_status("directory", directory.id, status, reason, directory.required, role=directory.role))
+        except (UntrustedInputError, OSError) as exc:
+            out["sources"].append(source_status("directory", directory.id, "failed", str(exc), directory.required,
+                                                code=getattr(exc, "code", "directory_unreadable")))
+
+
 def collect(config, destination=None):
     """Write a collection bundle. Returns the collection document."""
     destination = Path(destination or config.output_dir / "collection")
-    if destination.exists() and any(destination.iterdir()):
-        shutil.rmtree(destination)
-    destination.mkdir(parents=True, exist_ok=True)
+    inputs = [config.root, config.path] + config.records
+    inputs += [item.path for item in config.artifacts] + [item.archive for item in config.images if item.archive]
+    inputs += [item.path for item in config.directories]
+    inputs += [path for item in config.configurations for path in
+               (item.conan_graph, item.conan_manifest, item.conan_lockfile, item.cmake_build_dir, item.pip_inspect) if path]
+    reset_output(destination, "collection", protected=inputs)
     if not config.scope.roots:
         raise ConfigError("config_missing", "scope.roots is empty")
     revision = config.revision
@@ -211,13 +260,15 @@ def collect(config, destination=None):
         "sources": [], "observations": [], "edges": [], "artifacts": [], "targets": [], "adapters": [],
         "vendored_candidates": [], "covered_vendor_paths": {}, "unresolved_links": [], "limitations": [], "diagnostics": [],
     }
-    if not (config.configurations or config.images or config.artifacts or config.records):
-        raise ConfigError("config_empty", "nothing to collect: configure configurations, images, artifacts or components.records")
+    if not (config.configurations or config.images or config.artifacts or config.records or config.directories):
+        raise ConfigError("config_empty", "nothing to collect: configure configurations, directories, images, artifacts or components.records")
     for configuration in config.configurations:
+        _collect_python(configuration, config, store, out)
         folders = _collect_conan(configuration, config, store, out)
         _collect_cmake(configuration, config, store, out, folders)
     _collect_artifacts(config, store, out)
     _collect_images(config, store, out)
+    _collect_directories(config, store, out, destination)
     _collect_records(config, store, out)
     out["evidence"] = store.records
     write_json(destination / "collection.json", out)

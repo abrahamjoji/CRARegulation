@@ -16,7 +16,7 @@ import urllib.request
 from pathlib import Path
 
 from ..common.archive import ArchiveLimits, create_tar_gz, safe_extract
-from ..common.bundle import verify_manifest
+from ..common.bundle import reset_output, verify_manifest
 from ..common.errors import EXIT_INCOMPLETE, EXIT_PASSED, AuthError, ConfigError, CraError, OperationalError, UntrustedInputError
 from ..common.safety import read_json, redact_text, sha256_file
 
@@ -110,8 +110,7 @@ def analyze_hosted(config, collection, destination, args):
     token = os.environ.get(config.hosted.token_env)
     if not token:
         raise AuthError("hosted_token_missing", f"Set {config.hosted.token_env} to a project token.")
-    if destination.exists():
-        shutil.rmtree(destination)
+    reset_output(destination, "analysis", protected=[collection, config.root, config.path])
     if not (collection / "collection.json").is_file():
         raise CraError("collection_missing", f"No collection at {collection}. Run `cra collect` first.", EXIT_INCOMPLETE)
     with tempfile.TemporaryDirectory(prefix="cra-upload-") as work:
@@ -144,7 +143,8 @@ def analyze_hosted(config, collection, destination, args):
         problems = verify_manifest(staged)
         if problems:
             raise OperationalError("hosted_result_integrity", "; ".join(problems[:5]))
-        destination.parent.mkdir(parents=True, exist_ok=True)
+        # reset_output leaves an empty directory so it can never erase arbitrary files.
+        destination.rmdir()
         shutil.move(str(staged), destination)
     result = read_json(destination / "result.json")
     print(f"Hosted analysis {result['scan_status']}: {result['summary']['total']} findings. Job {job_id}. Results in {destination}.")

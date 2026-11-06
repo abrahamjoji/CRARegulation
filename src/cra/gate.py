@@ -39,6 +39,18 @@ def evaluate_gate(analysis_dir, mode="build", expect_revision=None, expect_artif
     evaluation = (result.get("evaluation") or {}).get(mode) if isinstance(result.get("evaluation"), dict) else None
     if not isinstance(evaluation, dict) or evaluation.get("outcome") not in OUTCOME_EXIT:
         return _failure(mode, "result_malformed", f"The result has no usable evaluation for gate mode {mode}.")
+    for field in ("incomplete_reasons", "policy_violations"):
+        rows = evaluation.get(field)
+        if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+            return _failure(mode, "result_malformed", f"The evaluation {field} must be a list of reason objects.")
+    if evaluation.get("mode") != mode:
+        return _failure(mode, "result_inconsistent", "The evaluation mode does not match the requested gate mode.")
+    if (evaluation["outcome"] == "passed" and (evaluation["incomplete_reasons"] or evaluation["policy_violations"])):
+        return _failure(mode, "result_inconsistent", "A passed result contains incomplete reasons or policy violations.")
+    if not isinstance(result.get("source"), dict) or not isinstance(result.get("policy"), dict):
+        return _failure(mode, "result_malformed", "Result source and policy must be objects.")
+    if not isinstance(result.get("artifacts"), list):
+        return _failure(mode, "result_malformed", "Result artifacts must be a list.")
     if result.get("scan_status") != "complete" and evaluation["outcome"] != "incomplete":
         return _failure(mode, "result_inconsistent", "The result says the scan was incomplete but evaluates to a final outcome.")
 
@@ -61,7 +73,7 @@ def evaluate_gate(analysis_dir, mode="build", expect_revision=None, expect_artif
         try:
             created = dt.datetime.fromisoformat(result.get("created_at"))
             age = (now - created).total_seconds() / 3600
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             age = None
         if age is None or age > max_age_hours or age < 0:
             binding.append({"code": "result_stale", "message": f"The result is outside the {max_age_hours}-hour age limit."})

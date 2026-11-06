@@ -29,6 +29,10 @@ For anyone deciding what they can rely on. Status terms:
 - `step-1-evidence-and-register` is an earlier baseline that the later branches supersede. It was not merged.
 - All 67 existing tests are preserved and pass.
 
+## Audit follow-up
+
+See [PROJECT_AUDIT.md](PROJECT_AUDIT.md) for the cross-language review, corrections and remaining deployment work. Added Python pip-inspect and generic directory adapters share the existing inventory, local/hosted analysis and gate. [LANGUAGE_SUPPORT.md](LANGUAGE_SUPPORT.md) explains supported evidence and limits. Hosted production isolation and authenticated results remain open; "Done" above refers to the original implementation milestone, not production assurance.
+
 ## Functionality
 
 | Function | Status | Notes |

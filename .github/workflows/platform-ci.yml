@@ -28,7 +28,8 @@ jobs:
       - name: Install locked dependencies and pinned tools
         run: |
           pip install --require-hashes -r requirements/dev.lock
-          pip install --no-deps conan==2.34.0 cmake==4.4.4 ninja==1.13.2 || exit 1
+          # Conan needs its own runtime dependencies; the dev lock contains API/test dependencies only.
+          pip install conan==2.34.0 cmake==4.4.4 ninja==1.13.2
           scripts/install_tools.sh
           .tools/grype db update
       - name: Real Conan, CMake, Syft, Grype and cosign
