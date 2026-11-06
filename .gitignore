@@ -4,3 +4,11 @@ __pycache__/
 .env
 *.pem
 *.key
+.tools/
+.cra/
+build/
+dist/
+*.egg-info/
+reference/app/build*/
+reference/out/
+reference/app/CMakeUserPresets.json

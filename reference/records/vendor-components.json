@@ -1,0 +1,17 @@
+{
+  "schema_version": "cra.component-records/1",
+  "components": [
+    {
+      "name": "tinycrc",
+      "version": "1.2.0",
+      "supplier": "Fictional vendored source",
+      "license": "MIT",
+      "scope": "runtime",
+      "linkage": "static",
+      "shipped": true,
+      "source_paths": ["third_party/tinycrc"],
+      "note": "Vendored into the source tree, so Conan and CMake cannot name it.",
+      "reviewed_by": "Reference project maintainer (fictional)"
+    }
+  ]
+}
