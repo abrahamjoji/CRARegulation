@@ -4,12 +4,16 @@
   "firmware_version": "2.4.1",
   "build_id": "ci-2026-11-05.17",
   "cra_class": "Default (self-assessment, Module A)",
+  "classification_rationale": "Core functionality is controlling a robot arm. It includes an operating system, but that is not its core functionality (fictional example).",
+  "market": {"first_placed": "2026-03-01", "units_after_application": true},
   "other_laws": ["Machinery Regulation (EU) 2023/1230 from 20 Jan 2027", "RED delegated act (Wi-Fi module)"],
   "support_period_end": "2032-12-31",
+  "support_period_rationale": "",
+  "triage_policy": {"max_investigation_days": 14},
   "security_contact": "security@nordwerk.example",
   "annex_i": {
     "part_1": [
-      {"id": "I.2(a)", "req": "No known exploitable vulnerabilities at release", "status": "partial", "evidence": "Scan in CI; 4 findings still need action"},
+      {"id": "I.2(a)", "req": "No known exploitable vulnerabilities at release", "status": "partial", "evidence": "Scan in CI; open findings are listed in this report"},
       {"id": "I.2(b)", "req": "Secure-by-default configuration, reset to original state", "status": "partial", "evidence": "Default admin password removed; factory reset untested"},
       {"id": "I.2(c)", "req": "Vulnerabilities can be fixed through security updates", "status": "met", "evidence": "Signed A/B OTA updates (RAUC)"},
       {"id": "I.2(d)", "req": "Protection from unauthorised access", "status": "partial", "evidence": "Web UI login; service port without auth"},

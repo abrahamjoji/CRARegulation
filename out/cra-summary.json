@@ -1,17 +1,37 @@
 {
   "generated": "2026-11-05",
-  "score": 59,
-  "checklist_pct": 55,
-  "triage_pct": 67,
+  "score": 44,
+  "checklist_pct": 41,
+  "triage_pct": 50,
   "open": 4,
   "untriaged": 2,
   "days_left": 401,
   "counts": {
-    "met": 7,
-    "partial": 9,
-    "missing": 5
+    "met": 1,
+    "unverified": 6,
+    "partial": 10,
+    "missing": 5,
+    "not_applicable": 0
   },
   "kev_loaded": true,
+  "duties": {
+    "reporting": "Applies now, and continues after support ends",
+    "annex_i": "Applies to units placed on the market from 2027-12-11"
+  },
+  "sbom": {
+    "components": 9,
+    "no_version": [],
+    "no_supplier": [
+      "openssl",
+      "zlib",
+      "libcurl",
+      "expat",
+      "mosquitto",
+      "protobuf-c",
+      "nlohmann_json"
+    ],
+    "ok": true
+  },
   "product": {
     "product": "RC-200 robot arm controller",
     "firmware_version": "2.4.1",
@@ -27,7 +47,9 @@
       "version": "5.15.0",
       "severity": "high",
       "status": "under_investigation",
-      "kev": true
+      "kev": true,
+      "exploited": null,
+      "source": "scanner"
     },
     {
       "id": "CVE-2022-37434",
@@ -35,7 +57,9 @@
       "version": "1.2.11",
       "severity": "critical",
       "status": "needs_triage",
-      "kev": false
+      "kev": false,
+      "exploited": null,
+      "source": "scanner"
     },
     {
       "id": "CVE-2018-25032",
@@ -43,7 +67,9 @@
       "version": "1.2.11",
       "severity": "high",
       "status": "needs_triage",
-      "kev": false
+      "kev": false,
+      "exploited": null,
+      "source": "scanner"
     },
     {
       "id": "CVE-2022-0778",
@@ -51,7 +77,9 @@
       "version": "3.0.1",
       "severity": "high",
       "status": "affected",
-      "kev": false
+      "kev": false,
+      "exploited": false,
+      "source": "scanner"
     },
     {
       "id": "CVE-2022-25235",
@@ -59,7 +87,9 @@
       "version": "2.4.1",
       "severity": "critical",
       "status": "not_affected",
-      "kev": false
+      "kev": false,
+      "exploited": null,
+      "source": "scanner"
     },
     {
       "id": "CVE-2022-32221",
@@ -67,7 +97,154 @@
       "version": "7.83.0",
       "severity": "critical",
       "status": "not_affected",
-      "kev": false
+      "kev": false,
+      "exploited": null,
+      "source": "scanner"
     }
-  ]
+  ],
+  "checklist": [
+    {
+      "id": "I.1",
+      "status": "partial",
+      "effective": "partial",
+      "flag": ""
+    },
+    {
+      "id": "I.2(a)",
+      "status": "partial",
+      "effective": "partial",
+      "flag": ""
+    },
+    {
+      "id": "I.2(b)",
+      "status": "partial",
+      "effective": "partial",
+      "flag": ""
+    },
+    {
+      "id": "I.2(c)",
+      "status": "met",
+      "effective": "unverified",
+      "flag": "Claimed met, with no evidence file linked"
+    },
+    {
+      "id": "I.2(d)",
+      "status": "partial",
+      "effective": "partial",
+      "flag": ""
+    },
+    {
+      "id": "I.2(e)",
+      "status": "met",
+      "effective": "unverified",
+      "flag": "Claimed met, with no evidence file linked"
+    },
+    {
+      "id": "I.2(f)",
+      "status": "met",
+      "effective": "unverified",
+      "flag": "Claimed met, with no evidence file linked"
+    },
+    {
+      "id": "I.2(g)",
+      "status": "met",
+      "effective": "unverified",
+      "flag": "Claimed met, with no evidence file linked"
+    },
+    {
+      "id": "I.2(h)",
+      "status": "partial",
+      "effective": "partial",
+      "flag": ""
+    },
+    {
+      "id": "I.2(i)",
+      "status": "met",
+      "effective": "unverified",
+      "flag": "Claimed met, with no evidence file linked"
+    },
+    {
+      "id": "I.2(j)",
+      "status": "partial",
+      "effective": "partial",
+      "flag": ""
+    },
+    {
+      "id": "I.2(k)",
+      "status": "partial",
+      "effective": "partial",
+      "flag": ""
+    },
+    {
+      "id": "I.2(l)",
+      "status": "missing",
+      "effective": "missing",
+      "flag": ""
+    },
+    {
+      "id": "I.2(m)",
+      "status": "missing",
+      "effective": "missing",
+      "flag": ""
+    },
+    {
+      "id": "II.1",
+      "status": "met",
+      "effective": "met",
+      "flag": "Checked by this pipeline run"
+    },
+    {
+      "id": "II.2",
+      "status": "partial",
+      "effective": "partial",
+      "flag": ""
+    },
+    {
+      "id": "II.3",
+      "status": "partial",
+      "effective": "partial",
+      "flag": ""
+    },
+    {
+      "id": "II.4",
+      "status": "missing",
+      "effective": "missing",
+      "flag": ""
+    },
+    {
+      "id": "II.5",
+      "status": "missing",
+      "effective": "missing",
+      "flag": ""
+    },
+    {
+      "id": "II.6",
+      "status": "missing",
+      "effective": "missing",
+      "flag": ""
+    },
+    {
+      "id": "II.7",
+      "status": "met",
+      "effective": "unverified",
+      "flag": "Claimed met, with no evidence file linked"
+    },
+    {
+      "id": "II.8",
+      "status": "partial",
+      "effective": "partial",
+      "flag": ""
+    }
+  ],
+  "register": [
+    {
+      "id": "VR-2026-001",
+      "clock": null
+    },
+    {
+      "id": "VR-2026-002",
+      "clock": null
+    }
+  ],
+  "problems": []
 }

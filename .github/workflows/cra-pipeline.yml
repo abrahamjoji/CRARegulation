@@ -12,6 +12,14 @@ permissions:
   contents: read
 
 env:
+  # Point these at your product's files
+  PRODUCT_NAME: RC-200
+  FIRMWARE_DIR: firmware
+  PRODUCT_FILE: product.json
+  MANUAL_SBOM: sbom/manual-components.cdx.json
+  VEX_FILE: vex/rc200.openvex.json
+  RISK_FILE: risk/risk-assessment.json
+  REGISTER_FILE: vuln/register.json
   # Optional: set these repository secrets to upload every SBOM to OWASP Dependency-Track
   DT_URL: ${{ secrets.DT_URL }}
   DT_API_KEY: ${{ secrets.DT_API_KEY }}
@@ -38,10 +46,10 @@ jobs:
       - name: 1. Generate SBOM from the firmware sources
         run: |
           mkdir -p out
-          syft scan dir:firmware -o cyclonedx-json=out/sbom.cdx.json
+          syft scan "dir:$FIRMWARE_DIR" -o cyclonedx-json=out/sbom.cdx.json
 
       - name: 2. Add manual components (kernel from BSP, vendor SDK)
-        run: python scripts/merge_sbom.py out/sbom.cdx.json sbom/manual-components.cdx.json -o out/sbom.full.cdx.json
+        run: python scripts/merge_sbom.py out/sbom.cdx.json "$MANUAL_SBOM" -o out/sbom.full.cdx.json
 
       - name: 3. Match components against known vulnerabilities
         run: grype sbom:out/sbom.full.cdx.json --add-cpes-if-none -o json > out/scan.grype.json
@@ -50,17 +58,21 @@ jobs:
         run: |
           curl -sSfL --retry 3 https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json -o out/kev.json
 
-      - name: 5. Build CRA readiness report (gate on untriaged known-exploited CVEs)
+      - name: 5. Build CRA readiness report and run the gate (release gate when publishing a release)
         run: |
+          GATE=--gate
+          if [ "$GITHUB_EVENT_NAME" = release ]; then GATE=--release-gate; fi
           python scripts/cra_report.py \
-            --product product.json \
+            --product "$PRODUCT_FILE" \
             --sbom out/sbom.full.cdx.json \
             --scan out/scan.grype.json \
-            --vex vex/rc200.openvex.json \
+            --vex "$VEX_FILE" \
+            --risk "$RISK_FILE" \
+            --register "$REGISTER_FILE" \
             --kev out/kev.json \
             --out out/cra-report.html \
             --summary out/cra-summary.json \
-            --gate
+            "$GATE"
 
       - name: 6. Upload SBOM to Dependency-Track for continuous monitoring
         if: ${{ env.DT_URL != '' }}
@@ -68,7 +80,7 @@ jobs:
           curl -sSf -X POST "$DT_URL/api/v1/bom" \
             -H "X-Api-Key: $DT_API_KEY" \
             -F "autoCreate=true" \
-            -F "projectName=RC-200" \
+            -F "projectName=$PRODUCT_NAME" \
             -F "projectVersion=${GITHUB_REF_NAME}" \
             -F "bom=@out/sbom.full.cdx.json"
 
@@ -82,7 +94,10 @@ jobs:
             out/scan.grype.json
             out/cra-report.html
             out/cra-summary.json
-            vex/rc200.openvex.json
+            ${{ env.VEX_FILE }}
+            ${{ env.RISK_FILE }}
+            ${{ env.REGISTER_FILE }}
+            ${{ env.PRODUCT_FILE }}
           retention-days: 90
 
   # CI artifacts expire, so each release keeps its evidence as a release asset.
