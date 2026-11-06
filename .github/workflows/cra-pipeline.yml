@@ -4,15 +4,21 @@ on:
   push:
     branches: [main]
   pull_request:
-  release:
-    types: [published]
+  schedule:
+    - cron: '17 */6 * * *'
   workflow_dispatch:
+    inputs:
+      release_candidate:
+        description: Run the strict release gate on this candidate (does not publish)
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 env:
-  # Point these at your product's files
+  # Replace the demo inventory with the SBOM from your built product.
   PRODUCT_NAME: DEMO-200
   FIRMWARE_DIR: firmware
   PRODUCT_FILE: product.json
@@ -20,27 +26,17 @@ env:
   VEX_FILE: vex/demo200.openvex.json
   RISK_FILE: risk/risk-assessment.json
   REGISTER_FILE: vuln/register.json
-  # Demo setting. The demo's triage covers only a curated sample, so a live scan fails the
-  # gate. "false" reports that as a warning. A REAL PRODUCT MUST SET THIS TO "true".
-  # A published release always enforces the release gate.
-  ENFORCE_LIVE_GATE: "false"
-  # Date of the demo's sample data, so the demo gives the same result every day
   DEMO_DATE: "2026-11-05"
-  # Scanner versions and SHA-256 checksums, from each tool's release checksums file
-  SYFT_VERSION: 1.57.0
-  SYFT_SHA256: 9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704
-  GRYPE_VERSION: 0.121.2
-  GRYPE_SHA256: 9c8965ced9df657e5e851c14021bae838802f711edd7a48f9bc3c923a8d28f12
-  # Optional: set these repository secrets to upload every SBOM to OWASP Dependency-Track
-  DT_URL: ${{ secrets.DT_URL }}
-  DT_API_KEY: ${{ secrets.DT_API_KEY }}
 
 jobs:
   # Tests the scripts, then builds the labelled demo report from the curated sample data.
   demo:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
@@ -71,117 +67,115 @@ jobs:
           path: demo/
           retention-days: 90
 
-  # Scans the declared components against live vulnerability data.
   cra:
     needs: demo
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
 
-      - name: Install pinned Syft and Grype, checking their checksums
+      - name: Clear checked-in demo output
         run: |
-          install_tool() {
-            file="$1_$2_linux_amd64.tar.gz"
-            curl -sSfL --retry 3 "https://github.com/anchore/$1/releases/download/v$2/$file" -o "$RUNNER_TEMP/$file"
-            echo "$3  $RUNNER_TEMP/$file" | sha256sum -c -
-            tar -xzf "$RUNNER_TEMP/$file" -C /usr/local/bin "$1"
-          }
-          install_tool syft "$SYFT_VERSION" "$SYFT_SHA256"
-          install_tool grype "$GRYPE_VERSION" "$GRYPE_SHA256"
-          syft version && grype version
-
-      - name: 1. Generate SBOM from the firmware sources
-        run: |
+          rm -rf -- out
           mkdir -p out
-          syft scan "dir:$FIRMWARE_DIR" -o cyclonedx-json=out/sbom.cdx.json
 
-      - name: 2. Add manual components (kernel from BSP, vendor SDK)
+      # Digests retrieved from the official release asset APIs, 2026-11-06.
+      # Review version + digest together. Never fetch a mutable install.sh.
+      - name: Install pinned Syft and Grype binaries
+        run: |
+          mkdir -p "$RUNNER_TEMP/cra-tools" out
+          curl --proto '=https' --tlsv1.2 -fsSL --retry 3 --max-time 180 https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz -o "$RUNNER_TEMP/syft.tar.gz"
+          curl --proto '=https' --tlsv1.2 -fsSL --retry 3 --max-time 180 https://github.com/anchore/grype/releases/download/v0.121.2/grype_0.121.2_linux_amd64.tar.gz -o "$RUNNER_TEMP/grype.tar.gz"
+          echo "9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704  $RUNNER_TEMP/syft.tar.gz" | sha256sum -c --strict
+          echo "9c8965ced9df657e5e851c14021bae838802f711edd7a48f9bc3c923a8d28f12  $RUNNER_TEMP/grype.tar.gz" | sha256sum -c --strict
+          tar -xzf "$RUNNER_TEMP/syft.tar.gz" -C "$RUNNER_TEMP/cra-tools" syft
+          tar -xzf "$RUNNER_TEMP/grype.tar.gz" -C "$RUNNER_TEMP/cra-tools" grype
+          echo "$RUNNER_TEMP/cra-tools" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/cra-tools/syft" version > out/syft-version.txt
+          "$RUNNER_TEMP/cra-tools/grype" version > out/grype-version.txt
+
+      # Match the manual SBOM schema; Syft's unversioned output follows its latest schema.
+      - name: Generate SBOM from the firmware sources
+        run: syft scan "dir:$FIRMWARE_DIR" -o cyclonedx-json@1.5=out/sbom.cdx.json
+
+      - name: Add manual components
         run: python scripts/merge_sbom.py out/sbom.cdx.json "$MANUAL_SBOM" -o out/sbom.full.cdx.json
 
-      - name: 3. Match components against known vulnerabilities
-        run: grype sbom:out/sbom.full.cdx.json --add-cpes-if-none -o json > out/scan.grype.json
-
-      - name: 4. Fetch the CISA Known Exploited Vulnerabilities catalogue
+      - name: Match components against known vulnerabilities
         run: |
-          curl -sSfL --retry 3 https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json -o out/kev.json
+          grype sbom:out/sbom.full.cdx.json --add-cpes-if-none -o json > out/scan.grype.json
+          grype db status > out/grype-db.txt
 
-      - name: 5. Build CRA readiness report and run the gate (release gate when publishing a release)
+      - name: Fetch the CISA Known Exploited Vulnerabilities catalogue
+        run: curl --proto '=https' --tlsv1.2 -fsSL --retry 3 --max-time 120 https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json -o out/kev.json
+
+      - name: Build report and check candidate before publication
+        env:
+          RELEASE_CANDIDATE: ${{ inputs.release_candidate }}
         run: |
           GATE=--gate
-          if [ "$GITHUB_EVENT_NAME" = release ]; then GATE=--release-gate; fi
-          status=0
+          if [ "$RELEASE_CANDIDATE" = true ]; then GATE=--release-gate; fi
           python scripts/cra_report.py \
-            --product "$PRODUCT_FILE" \
-            --sbom out/sbom.full.cdx.json \
-            --scan out/scan.grype.json \
-            --vex "$VEX_FILE" \
-            --risk "$RISK_FILE" \
-            --register "$REGISTER_FILE" \
-            --kev out/kev.json \
-            --out out/cra-report.html \
-            --summary out/cra-summary.json \
-            "$GATE" > out/gate.txt || status=$?
-          cat out/gate.txt
-          { echo '```'; cat out/gate.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          # Only a gate result (exit 2) can be downgraded. A crash always fails the run.
-          if [ "$status" -eq 2 ] && [ "$ENFORCE_LIVE_GATE" != true ] && [ "$GITHUB_EVENT_NAME" != release ]; then
-            echo "::warning title=Live gate not enforced::The live scan failed the gate. Demo setting: ENFORCE_LIVE_GATE is off. A real product must turn it on."
-            exit 0
-          fi
-          exit "$status"
+            --product "$PRODUCT_FILE" --sbom out/sbom.full.cdx.json \
+            --scan out/scan.grype.json --vex "$VEX_FILE" \
+            --risk "$RISK_FILE" --register "$REGISTER_FILE" --kev out/kev.json \
+            --out out/cra-report.html --summary out/cra-summary.json "$GATE"
 
-      - name: 6. Upload SBOM to Dependency-Track for continuous monitoring
-        if: ${{ env.DT_URL != '' }}
+      - name: Snapshot inputs, linked evidence and tool provenance
+        if: ${{ !cancelled() && hashFiles('out/cra-summary.json') != '' }}
         run: |
-          curl -sSf -X POST "$DT_URL/api/v1/bom" \
-            -H "X-Api-Key: $DT_API_KEY" \
-            -F "autoCreate=true" \
-            -F "projectName=$PRODUCT_NAME" \
-            -F "projectVersion=${GITHUB_REF_NAME}" \
-            -F "bom=@out/sbom.full.cdx.json"
+          python scripts/cra_evidence.py --product "$PRODUCT_FILE" \
+            --out out/evidence --revision "$GITHUB_SHA" \
+            out/sbom.cdx.json out/sbom.full.cdx.json "$MANUAL_SBOM" \
+            out/scan.grype.json out/kev.json "$VEX_FILE" "$RISK_FILE" "$REGISTER_FILE" \
+            out/syft-version.txt out/grype-version.txt out/grype-db.txt \
+            out/cra-report.html out/cra-summary.json
 
-      - name: 7. Archive evidence for the technical file
+      - name: Retain technical evidence as a CI artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: cra-evidence-${{ github.sha }}
-          path: |
-            out/sbom.full.cdx.json
-            out/scan.grype.json
-            out/cra-report.html
-            out/cra-summary.json
-            out/gate.txt
-            ${{ env.VEX_FILE }}
-            ${{ env.RISK_FILE }}
-            ${{ env.REGISTER_FILE }}
-            ${{ env.PRODUCT_FILE }}
+          name: cra-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/
           retention-days: 90
+          if-no-files-found: error
 
-  # CI artifacts expire, so each release keeps its evidence as a release asset.
-  # Separate job: only this one gets write access, and it installs no third-party tools.
-  archive-release-evidence:
+      - name: Prepare SBOM for isolated monitoring upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: monitoring-sbom-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/sbom.full.cdx.json
+          retention-days: 1
+          if-no-files-found: error
+
+  # A fresh runner: scanner code never shares a machine with these credentials.
+  monitoring-upload:
     needs: cra
-    if: ${{ !cancelled() && github.event_name == 'release' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: cra-evidence-${{ github.sha }}
-          path: evidence
-
-      - name: Attach evidence and checksums to the release
+          name: monitoring-sbom-${{ github.run_id }}-${{ github.run_attempt }}
+          path: sbom
+      - name: Upload SBOM to Dependency-Track
         env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name }}
+          DT_URL: ${{ secrets.DT_URL }}
+          DT_API_KEY: ${{ secrets.DT_API_KEY }}
         run: |
-          (cd evidence && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
-          tar -czf "cra-evidence-$TAG.tar.gz" -C evidence .
-          sha256sum "cra-evidence-$TAG.tar.gz" > "cra-evidence-$TAG.tar.gz.sha256"
-          # No --clobber: evidence for a published release must not be overwritten by a re-run
-          gh release upload "$TAG" "cra-evidence-$TAG.tar.gz" "cra-evidence-$TAG.tar.gz.sha256" --repo "$GITHUB_REPOSITORY"
+          if [ -z "$DT_URL" ] || [ -z "$DT_API_KEY" ]; then exit 0; fi
+          case "$DT_URL" in https://*) ;; *) echo "DT_URL must use HTTPS" >&2; exit 1 ;; esac
+          curl --proto '=https' --tlsv1.2 --max-time 120 -fsS -X POST "$DT_URL/api/v1/bom" \
+            -H "X-Api-Key: $DT_API_KEY" \
+            --form-string 'autoCreate=true' \
+            --form-string "projectName=$PRODUCT_NAME" \
+            --form-string "projectVersion=$GITHUB_SHA" \
+            -F 'bom=@sbom/sbom.full.cdx.json'

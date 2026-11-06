@@ -6,14 +6,14 @@ The repository ships with demo data for the **DEMO-200 robot arm controller** by
 
 ## Demo and live scans
 
-The workflow runs two jobs, and they answer different questions.
+The workflow separates the repeatable demo from the live scan. A third job handles the optional monitoring upload on an isolated runner.
 
 | Job | Data | Result |
 | --- | --- | --- |
 | `demo` | A small, hand-picked sample of real CVEs, fixed to 5 November 2026 | Repeatable report for showing how the pipeline works. It does not show how many findings a real scan produces |
 | `cra` | Live vulnerability data for the components declared in `firmware/` and `sbom/` | What a real scan finds. Most findings are not triaged |
 
-The demo's triage only covers the sample, so its live scan fails the gate. While `ENFORCE_LIVE_GATE` is `"false"` the failure appears as a warning, with the gate's output in the run summary. **A real product must set it to `"true"`**, so the failure stops the build. A published release always enforces the release gate.
+The demo's triage only covers the sample, so its live scan can fail the gate. Live gate failures stop the build; the sample report remains available from the independent `demo` job. A manually dispatched candidate with `release_candidate: true` always runs the strict release gate before distribution.
 
 Paragraph numbers below refer to the Commission guidance on the CRA, C(2026) 5252 annex, which is non-binding.
 
@@ -52,6 +52,10 @@ Three items are checked from pipeline data, whatever `product.json` claims:
 
 Only a file's existence is checked, not its content, so someone still has to review the evidence.
 
+## Security review
+
+See [the security and production review](docs/SECURITY_REVIEW.md) for fixed issues, remaining production blockers and a recommended implementation order. The workflow now checks candidates before publication and never publishes releases or evidence automatically. See [production setup](docs/PRODUCTION_SETUP.md) for the controls still needed around product distribution.
+
 ## The gates
 
 `--gate` runs on every build and fails on problems that must never wait:
@@ -62,7 +66,7 @@ Only a file's existence is checked, not its content, so someone still has to rev
 - An investigation is older than `triage_policy.max_investigation_days`. The default of 14 is a project policy; the guidance asks for prompt action and sets no number of days (para 214).
 - An Article 14 step is overdue, or the register is invalid.
 
-`--release-gate` runs when a GitHub release is published, and also requires:
+`--release-gate` runs when you manually dispatch the workflow with `release_candidate: true`, and also requires:
 
 - A complete risk assessment, market dates, a classification rationale and a support period of at least 5 years, or a reason for less (para 128).
 - SBOM versions on every component.
@@ -70,7 +74,8 @@ Only a file's existence is checked, not its content, so someone still has to rev
 - For known-exploited findings, an answer on whether they are exploited in this product (para 218).
 - For `affected` findings, the upstream reporting status (Article 13(6)).
 - Impacted users informed for anything reportable (Article 14(8)).
-- No `met` item without evidence.
+- No `met` item without evidence, and no missing or partial checklist requirements.
+- No open finding whose recorded decision requires fixing it before release.
 
 The demo deliberately fails `--release-gate`. Its investigation of CVE-2022-0847 would pass the 14-day limit after 19 November 2026, so sample runs use `--date 2026-11-05` to stay repeatable.
 
@@ -81,6 +86,8 @@ A real scan can produce thousands of findings, especially for a Linux kernel dec
 Reducing the number takes real product data: the exact kernel version and patch level, and recorded decisions for code the product does not build. A report limit does not remove any finding, and the gate still counts them all.
 
 ## Article 14 reporting
+
+Register decisions for scanner findings must have the exact component `purl` (including version), as well as the vulnerability ID. Unscoped records remain visible as separate findings but cannot approve another component. Duplicate vulnerability/component records fail the gate.
 
 `vuln/register.json` records vulnerabilities from any source, including ones a scanner cannot see: researchers, customers, your own tests and the media (paras 233-234). Those also appear as findings.
 
@@ -116,7 +123,7 @@ Open `out/cra-report.html` in a browser.
 
 ## Run it for real
 
-Push this repository to GitHub. The workflow in `.github/workflows/cra-pipeline.yml` installs Syft and Grype, scans `firmware/conanfile.txt`, fetches the live KEV catalogue and builds the report. Download it from the run's artifacts. Results from the live vulnerability database can differ from the sample data.
+Push this repository to GitHub. Pushes, pull requests and a six-hour schedule run the build gate. Use Actions → CRA pipeline → Run workflow and select `release_candidate` for the strict gate before distributing a candidate. The workflow in `.github/workflows/cra-pipeline.yml` installs Syft and Grype, scans `firmware/conanfile.txt`, fetches the live KEV catalogue and builds the report. Download it from the run's artifacts. Results from the live vulnerability database can differ from the sample data.
 
 ## Set up a real product
 
@@ -124,21 +131,24 @@ Push this repository to GitHub. The workflow in `.github/workflows/cra-pipeline.
 2. Do the risk assessment first. It decides which Part I requirements apply (para 33), and cost or risk appetite cannot justify leaving a risk unaddressed (paras 158, 163).
 3. Decide whether your product has remote data processing, such as a cloud service it needs for one of its functions (section 8).
 4. Fill in `product.json`, including `classification_rationale`, `market` and the support period. Link evidence files through `evidence_refs`, with paths relative to `product.json`.
-5. At the top of `.github/workflows/cra-pipeline.yml`, set the paths and change `ENFORCE_LIVE_GATE` to `"true"`. Set `demo` to `false` in `product.json` if you started from the demo file.
+5. At the top of `.github/workflows/cra-pipeline.yml`, set the product paths. Set `demo` to `false` in `product.json` if you started from the demo file.
 6. Replace step 1 with an SBOM from your real firmware, using the options below.
 
 - **Yocto:** replace step 1 with the SBOM from `create-spdx`, converted to CycloneDX. Extract the image's `.spdx.tar.zst` first, then run `python scripts/spdx_to_cdx.py <extracted dir> --name <image> -o out/sbom.cdx.json`. SPDX 3 is not supported, so on releases that default to it use `INHERIT += "create-spdx-2.2"`.
 - **Zephyr:** replace step 1 with `west spdx`, then run `python scripts/spdx_to_cdx.py <build dir>/spdx --name <app> -o out/sbom.cdx.json`.
 - **After converting:** read the converter's warnings. A component with no version cannot be matched to CVEs. The workflow runs Grype with `--add-cpes-if-none` so that components with no CPE are still checked; generated CPEs can add false matches, which you record in VEX.
 - **Containers or root filesystems:** `syft scan <image or dir>`.
-- Syft and Grype versions and checksums are pinned at the top of the workflow. Update them together, using each release's checksums file.
+- Keep the pinned Syft and Grype versions and SHA-256 digests in the install step reviewed together. Dependabot proposes updates to action commit pins.
+- The workflow explicitly generates `cyclonedx-json@1.5` to match the manual SBOM. When changing schema versions, update every input together; the merger rejects mismatches. See [Syft format versions](https://oss.anchore.com/docs/guides/sbom/formats/#format-versions).
 - Edit `product.json` with the product's Annex I self-assessment and `vex/*.openvex.json` with triage decisions.
 
 ## Keeping the evidence
 
-CRA technical documentation must stay available for at least 10 years, or the support period if longer. Every run uploads a CI artifact that expires after 90 days, which suits ordinary builds. When a GitHub release is published, the `archive-release-evidence` job also attaches the evidence and SHA-256 checksums to that release, including when the gate fails.
+Every run uploads CI artifacts with 90-day retention. No evidence is attached to public releases automatically. Artifact visibility follows repository access, so use a private repository for confidential incident and vulnerability records.
 
-Release assets do not expire, but repository admins can delete them and they disappear with the repository. Copy them to storage the manufacturer controls, ideally write-once such as S3 Object Lock.
+The `out/evidence/` snapshot includes input files, tool/database provenance, linked evidence and a SHA-256 manifest with the source commit. `cra-summary.json` records gate mode, result and failure reasons. A failed snapshot fails the workflow; raw diagnostics may still be retained in `out/` and must not be treated as a complete bundle.
+
+Copy successful candidate bundles into manufacturer-controlled long-term storage before artifact expiry. Hashes alone do not authenticate an archive; signing and protected retention remain deployment responsibilities. The optional `--firmware` argument to `scripts/cra_evidence.py` retains and hashes an actual built firmware file. It does not prove that the SBOM describes that image.
 
 ## Files
 
@@ -153,6 +163,8 @@ vex/demo200.openvex.json           triage decisions with justifications
 sample-data/                     offline SBOM, scan and KEV subset for the demo
 scripts/cra_report.py            report generator
 scripts/cra_checks.py            score, evidence, register and gate rules
+scripts/cra_validation.py        canonical checklist and structural checks
+scripts/cra_evidence.py          evidence snapshots and SHA-256 manifest
 scripts/merge_sbom.py            SBOM merge helper
 scripts/spdx_to_cdx.py           SPDX 2.x to CycloneDX converter for Yocto and Zephyr
 tests/                           tests for the converter, checks and gates

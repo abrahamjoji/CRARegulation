@@ -312,7 +312,9 @@ class Report(TempDirTest):
         self.assertIn("no risk assessment supplied", result.stdout)
 
     def test_empty_inputs_cannot_pass_as_clean(self):
-        for name, text, message in (("sbom.json", '{"components": []}', "SBOM has no components"), ("scan.json", "{}", "scan did not run")):
+        for name, text, message in (("sbom.json", '{"components": []}', "SBOM has no components"), ("scan.json", "{}", "scan did not run"),
+                                    ("scan.json", '{"matches": null}', "scan did not run"),
+                                    ("scan.json", '{"matches": {}}', "scan did not run")):
             path = self.tmp / name
             path.write_text(text, encoding="utf-8")
             args = ["--product", ROOT / "product.json",
@@ -342,6 +344,113 @@ class Report(TempDirTest):
         page = (self.tmp / "r.html").read_text(encoding="utf-8")
         self.assertNotIn("<script>alert(1)", page)
         self.assertNotIn("<img src=x>", page)
+
+    def test_unscoped_vex_cannot_suppress_a_finding(self):
+        vex = self.data("vex/demo200.openvex.json")
+        for statement in vex["statements"]:
+            statement.pop("products", None)
+        result, summary = self.report("--gate", vex=vex)
+        self.assertEqual(result.returncode, 2)
+        self.assertTrue(all(f["status"] == "needs_triage" for f in summary["findings"]))
+
+    def test_duplicate_vex_is_rejected(self):
+        vex = self.data("vex/demo200.openvex.json")
+        vex["statements"].append(copy.deepcopy(vex["statements"][0]))
+        result, _ = self.report("--gate", vex=vex)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("duplicate VEX", result.stderr)
+
+    def test_html_blocks_active_urls_and_attribute_injection(self):
+        register = {"entries": [{"id": "X", "type": "vulnerability", "vulnerability": "LOCAL-1",
+                    "source": "researcher", "url": "javascript:alert(1)",
+                    "severity": 'high" onmouseover="alert(1)'}]}
+        result, _ = self.report(register=register)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        page = (self.tmp / "r.html").read_text()
+        self.assertNotIn('href="javascript:', page)
+        self.assertNotIn(' onmouseover="', page)
+        self.assertNotIn("fonts.googleapis.com", page)
+
+    def test_fix_before_release_blocks_open_finding(self):
+        register = self.data("vuln/register.json")
+        register["entries"][0]["release_decision"] = {
+            "decision": "fix_before_release", **{k: "reviewed" for k in checks.DECISION_FIELDS}}
+        result, _ = self.report("--release-gate", register=register)
+        self.assertIn("must be fixed before release", result.stdout)
+        self.assertEqual(result.returncode, 2)
+
+    def test_future_submission_does_not_satisfy_reporting_gate(self):
+        register = self.data("vuln/register.json")
+        register["entries"][0].update({"actively_exploited_in_product": True,
+            "aware_at": "2026-11-04T08:00:00Z", "early_warning_at": "2026-11-06T00:00:00Z"})
+        result, _ = self.report("--gate", register=register)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("early_warning_at is in the future", result.stdout)
+
+    def test_missing_and_partial_checklist_items_block_release(self):
+        result, _ = self.report("--release-gate")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("is incomplete: missing", result.stdout)
+        self.assertIn("is incomplete: partial", result.stdout)
+
+    def test_checklist_rows_cannot_be_deleted_duplicated_or_marked_computed(self):
+        for mutation in ("delete", "duplicate", "computed", "unknown", "refs"):
+            product = self.data("product.json")
+            items = product["annex_i"]["part_1"]
+            if mutation == "delete":
+                items.pop()
+            elif mutation == "duplicate":
+                items.append(copy.deepcopy(items[0]))
+            elif mutation == "computed":
+                items[0]["computed"] = True
+            elif mutation == "unknown":
+                items[0]["id"] = "I.99"
+            else:
+                items[0]["evidence_refs"] = "README.md"
+            result, _ = self.report("--release-gate", product=product)
+            self.assertEqual(result.returncode, 2, mutation)
+            self.assertIn("Invalid input", result.stderr)
+
+    def test_register_decision_is_bound_to_its_component(self):
+        register = self.data("vuln/register.json")
+        register["entries"][0]["purl"] = "pkg:generic/another-kernel@1.0"
+        register["entries"][0]["actively_exploited_in_product"] = False
+        _, summary = self.report(register=register)
+        kernel = next(f for f in summary["findings"] if f["component"] == "linux-kernel")
+        self.assertIsNone(kernel["exploited"])
+        self.assertIn("CVE-2022-0847", summary["reporting_checks"])
+
+    def test_unscoped_register_decision_cannot_authorize_a_component(self):
+        register = self.data("vuln/register.json")
+        register["entries"][0].pop("purl")
+        register["entries"][0]["actively_exploited_in_product"] = False
+        _, summary = self.report(register=register)
+        kernel = next(f for f in summary["findings"] if f["component"] == "linux-kernel")
+        self.assertIsNone(kernel["exploited"])
+
+    def test_duplicate_component_decisions_are_rejected(self):
+        register = self.data("vuln/register.json")
+        duplicate = copy.deepcopy(register["entries"][0])
+        duplicate["id"] = "ANOTHER-ID"
+        register["entries"].append(duplicate)
+        result, _ = self.report("--gate", register=register)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("duplicate vulnerability/component identity", result.stdout)
+
+    def test_gate_result_is_recorded_in_summary(self):
+        result, summary = self.report("--release-gate")
+        self.assertEqual(result.returncode, 2)
+        self.assertFalse(summary["gate"]["passed"])
+        self.assertTrue(summary["gate"]["failures"])
+        _, summary = self.report("--gate")
+        self.assertTrue(summary["gate"]["passed"])
+
+    def test_reporting_events_cannot_precede_awareness(self):
+        register = {"entries": [{"id": "INC-1", "type": "incident",
+            "aware_at": "2026-11-05T00:00:00Z", "notification_at": "2026-11-04T00:00:00Z"}]}
+        result, _ = self.report("--gate", register=register)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("notification_at precedes awareness", result.stdout)
 
     def test_templates_load_and_block_release(self):
         product, risk, register = (self.data(f"templates/{n}") for n in ("product.json", "risk-assessment.json", "register.json"))
@@ -433,6 +542,16 @@ class Presentation(TempDirTest):
 
 
 class Workflow(unittest.TestCase):
+    def test_syft_output_version_matches_manual_sbom(self):
+        import re
+        workflow = (ROOT / ".github/workflows/cra-pipeline.yml").read_text(encoding="utf-8")
+        generation = next(line.strip() for line in workflow.splitlines() if "run: syft scan" in line)
+        output = re.search(r"-o cyclonedx-json@([0-9]+\.[0-9]+)=out/sbom\.cdx\.json", generation)
+        self.assertIsNotNone(output, "Syft output schema must be explicit, not the moving default")
+        manual = json.loads((ROOT / "sbom/manual-components.cdx.json").read_text(encoding="utf-8"))
+        self.assertEqual(output.group(1), manual["specVersion"])
+
+
     def test_tools_are_pinned(self):
         text = (ROOT / ".github/workflows/cra-pipeline.yml").read_text(encoding="utf-8")
         self.assertNotIn("/main/install.sh", text)

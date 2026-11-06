@@ -21,8 +21,10 @@ import html
 import json
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import cra_checks as checks
+import cra_validation as validation
 
 DEADLINE = checks.APPLICATION_DATE
 REPORTING_START = checks.REPORTING_START
@@ -52,6 +54,17 @@ def load(path):
 
 def esc(value):
     return html.escape(str(value), quote=True)
+
+
+def safe_url(value):
+    """Only allow ordinary web links from untrusted scanner/register data."""
+    if not isinstance(value, str) or any(ord(c) < 32 for c in value):
+        return "#"
+    try:
+        parts = urlsplit(value)
+        return value if parts.scheme.lower() in ("https", "http") and parts.hostname else "#"
+    except ValueError:
+        return "#"
 
 
 def components_from(bom, default_source):
@@ -90,14 +103,17 @@ def vex_index(vex):
     index = {}
     for st in (vex or {}).get("statements", []):
         vid = st.get("vulnerability", {}).get("name")
-        products = [p.get("@id") for p in st.get("products", [])] or [None]
+        products = [p.get("@id") for p in st.get("products", []) if isinstance(p, dict) and checks.text(p.get("@id"))]
         for purl in products:
+            if (vid, purl) in index:
+                raise ValueError(f"conflicting/duplicate VEX statements for {vid} on {purl}")
             index[(vid, purl)] = st
     return index
 
 
 def build(args):
     product = load(args.product)
+    validation.validate_product(product)
     comps = components_from(load(args.sbom), "auto")
     comps += components_from(load(args.manual), "manual") if args.manual else []
     seen, unique = set(), []
@@ -119,14 +135,26 @@ def build(args):
     now = (dt.datetime.combine(today, dt.time(23, 59, 59), dt.timezone.utc) if args.date
            else dt.datetime.now(dt.timezone.utc))
     entries, register_problems = checks.validate_register(load(args.register))
-    by_vuln = {e["vulnerability"]: e for e in entries if e.get("type") == "vulnerability" and checks.text(e.get("vulnerability"))}
+    by_vuln = {validation.finding_key(e["vulnerability"], e.get("purl")): e for e in entries
+               if e.get("type") == "vulnerability" and checks.text(e.get("vulnerability"))}
     max_days = product.get("triage_policy", {}).get("max_investigation_days", checks.DEFAULT_MAX_INVESTIGATION_DAYS)
 
+    if isinstance(max_days, bool) or not isinstance(max_days, int) or max_days < 1:
+        raise ValueError("triage_policy.max_investigation_days must be a positive integer")
+    for entry in entries:
+        for key in ("first_seen", "aware_at", "early_warning_at", "notification_at",
+                    "fix_available_at", "final_report_at", "users_informed_at"):
+            timestamp = checks.parse_time(entry.get(key))
+            if timestamp and timestamp > now:
+                register_problems.append(f"register {entry.get('id')}: {key} is in the future")
+
     scan = load(args.scan)
-    scan_ok = isinstance(scan, dict) and "matches" in scan
+    scan_ok = isinstance(scan, dict) and isinstance(scan.get("matches"), list)
     records = []
-    for m in (scan or {}).get("matches") or []:
+    for m in scan["matches"] if scan_ok else []:
         vul, art = m.get("vulnerability", {}), m.get("artifact", {})
+        if not checks.text(vul.get("id")) or not checks.text(art.get("name")):
+            raise ValueError("every scan match needs a vulnerability id and artifact name")
         scores = [c.get("metrics", {}).get("baseScore") for c in vul.get("cvss", [])]
         scores = [x for x in scores if x is not None]
         records.append({
@@ -136,9 +164,10 @@ def build(args):
             "description": vul.get("description", ""), "url": vul.get("dataSource", ""), "source": "scanner",
         })
     # Vulnerabilities known from other sources count too, not only scanner matches (paras 233-234)
-    scanned = {r["id"] for r in records}
-    for vid, e in by_vuln.items():
-        if vid not in scanned:
+    scanned = {validation.finding_key(r["id"], r["purl"]) for r in records}
+    for key, e in by_vuln.items():
+        vid = key[0]
+        if key not in scanned:
             records.append({
                 "id": vid, "component": e.get("component", "?"), "version": e.get("version", "?"), "purl": e.get("purl"),
                 "severity": (e.get("severity") or "unknown").lower(), "score": None, "fix": e.get("fix") or "none",
@@ -148,11 +177,11 @@ def build(args):
     findings = []
     for f in records:
         vid, purl = f["id"], f["purl"]
-        st = vidx.get((vid, purl)) or vidx.get((vid, None))
+        st = vidx.get((vid, purl)) if checks.text(purl) else None
         problem = checks.vex_problem(st) if st else ""
         status = st.get("status") if st and not problem else "needs_triage"
         started = checks.parse_time((st or {}).get("timestamp") or vex_date)
-        entry = by_vuln.get(vid)
+        entry = by_vuln.get(validation.finding_key(vid, purl))
         exploited = (entry or {}).get("actively_exploited_in_product")
         f.update({
             "status": status,
@@ -163,7 +192,7 @@ def build(args):
             "exploited": exploited,
             "vex_problem": problem,
             "investigation_overdue": status == "under_investigation" and (
-                started is None or (now - started).days > max_days),
+                started is None or started > now or (now - started).days > max_days),
         })
         # A KEV listing alone is not a reportable event: exploitation must be in this product (para 218)
         f["reporting_check"] = exploited is True or (
@@ -178,7 +207,7 @@ def build(args):
     sbom = checks.sbom_report(comps)
     product_problems = checks.product_problems(product, today)
     part_1, part_2 = product["annex_i"]["part_1"], product["annex_i"]["part_2"]
-    known_ids = {i["id"] for i in part_1 + part_2}
+    known_ids = validation.REQUIREMENT_IDS
     ra = load(args.risk)
     risk_problems = checks.validate_risk_assessment(ra, known_ids)
     root = Path(args.evidence_root) if args.evidence_root else Path(args.product).resolve().parent
@@ -296,8 +325,8 @@ def render(d):
         if f["note"]:
             detail = f"{detail}. {f['note']}" if detail else f["note"]
         f_rows.append(
-            f'<tr class="{sev_cls(f["severity"])}" data-status="{esc(f["status"])}" data-open="{int(f["open"])}">'
-            f'<td class="stripe"><a href="{esc(f["url"])}">{esc(f["id"])}</a>{flags}'
+            f'<tr class="{esc(sev_cls(f["severity"]))}" data-status="{esc(f["status"])}" data-open="{int(f["open"])}">'
+            f'<td class="stripe"><a href="{esc(safe_url(f["url"]))}">{esc(f["id"])}</a>{flags}'
             f'<div class="desc">{esc(f["description"])}</div></td>'
             f'<td><code>{esc(f["component"])}</code> <span class="mono dim">{esc(f["version"])}</span></td>'
             f'<td><span class="sev">{esc(f["severity"].title())}</span> <span class="mono dim">{esc(f["score"] or "")}</span></td>'
@@ -399,6 +428,7 @@ def render(d):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CRA Readiness Report {esc(p["product"])}</title>
+<meta name="referrer" content="no-referrer">
 <style>
 :root {{
   /* Layout: report sheet, summary tiles first, then action, findings, Annex I, SBOM */
@@ -644,13 +674,21 @@ def main():
                     help="Everything in --gate, plus the checks a product must pass before it is placed on the market")
     args = ap.parse_args()
 
-    d = build(args)
+    try:
+        d = build(args)
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+        print(f"Invalid input: {error}", file=sys.stderr)
+        return 2
+    failures = checks.gate_failures(d, args.release_gate) if args.gate or args.release_gate else []
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(render(d), encoding="utf-8")
     summary = {k: d[k] for k in ("generated", "score", "checklist_pct", "triage_pct", "open", "untriaged", "days_left", "counts", "kev_loaded", "duties", "sbom")}
+    summary["gate"] = {"mode": "release" if args.release_gate else "build" if args.gate else "none",
+                       "passed": not failures if args.gate or args.release_gate else None,
+                       "failures": failures}
     summary["product"] = {k: d["product"][k] for k in ("product", "firmware_version", "build_id")}
     summary["reporting_checks"] = [f["id"] for f in d["reporting"]]
-    summary["findings"] = [{k: f[k] for k in ("id", "component", "version", "severity", "status", "kev", "exploited", "source")} for f in d["findings"]]
+    summary["findings"] = [{k: f[k] for k in ("id", "component", "version", "purl", "severity", "status", "kev", "exploited", "source")} for f in d["findings"]]
     summary["checklist"] = [{k: i.get(k, "") for k in ("id", "status", "effective", "flag")} for i in d["items"]]
     summary["register"] = [{"id": r["entry"].get("id"), "clock": r["clock"]} for r in d["register"]]
     summary["by_component"] = d["by_component"]
@@ -666,7 +704,6 @@ def main():
     print(f"Report: {args.out}\nSummary: {args.summary}")
 
     if args.gate or args.release_gate:
-        failures = checks.gate_failures(d, args.release_gate)
         if failures:
             print(f"GATE FAILED with {len(failures)} problem(s):")
             for failure in failures[:MAX_GATE_LINES]:
@@ -678,4 +715,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

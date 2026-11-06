@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CRA Readiness Report DEMO-200 robot arm controller</title>
+<meta name="referrer" content="no-referrer">
 <style>
 :root {
   /* Layout: report sheet, summary tiles first, then action, findings, Annex I, SBOM */
@@ -107,7 +108,7 @@ footer { font-size: 12.5px; color: var(--muted); }
 <body>
 <main class="wrap">
   <div class="banner">Demo with curated sample data. The company and product are fictional. The CVE records are real, but this is a small hand-picked subset: a real scan of these versions finds far more.</div>
-  
+
   <header class="card head">
     <div>
       <p class="eyebrow">CRA readiness report · generated 2026-11-05</p>
@@ -136,7 +137,7 @@ footer { font-size: 12.5px; color: var(--muted); }
     <div class="tile"><div class="v">1/22</div><div class="l">Annex I requirements met with evidence (6 unverified)</div></div>
     <div class="tile"><div class="v">401</div><div class="l">Days until full CRA (11 Dec 2027)</div></div>
   </section>
-  
+
     <section class="alert" aria-labelledby="rep-h0">
       <div class="alert-head">
         <p class="eyebrow">Reporting check · CRA Article 14</p>
@@ -150,7 +151,7 @@ footer { font-size: 12.5px; color: var(--muted); }
       </ol>
       <p class="small dim">Fix available upstream in 5.15.25.</p>
     </section>
-  
+
   <section class="card" aria-labelledby="c-h">
     <h2 id="c-h">Findings by component</h2>
     <p class="small dim" style="margin:4px 0 12px">Where the work is. Known-exploited findings come first.</p>
@@ -170,7 +171,7 @@ footer { font-size: 12.5px; color: var(--muted); }
         <button type="button" id="flt-na" data-f="not_affected" aria-pressed="false">Not affected</button>
       </div>
     </div>
-    
+
     <div class="tablewrap"><table id="findings">
       <thead><tr><th>Vulnerability</th><th>Component</th><th>Severity</th><th>Fixed in</th><th>VEX status</th></tr></thead>
       <tbody><tr class="sev-high" data-status="under_investigation" data-open="1"><td class="stripe"><a href="https://nvd.nist.gov/vuln/detail/CVE-2022-0847">CVE-2022-0847</a><span class="tag kev">Known exploited</span><div class="desc">Pipe buffer flags are not initialised correctly, so a local unprivileged user can overwrite data in read-only files and gain root (&quot;Dirty Pipe&quot;).</div></td><td><code>linux-kernel</code> <span class="mono dim">5.15.0</span></td><td><span class="sev">High</span> <span class="mono dim">7.8</span></td><td class="mono">5.15.25</td><td><span class="pill s-under_investigation">Investigating</span><div class="desc">Known exploited in the wild. Checking whether any local user or process on the controller can reach it.</div></td></tr><tr class="sev-critical" data-status="needs_triage" data-open="1"><td class="stripe"><a href="https://nvd.nist.gov/vuln/detail/CVE-2022-37434">CVE-2022-37434</a><div class="desc">Heap buffer overflow in inflate when an application reads a gzip header with a large extra field.</div></td><td><code>zlib</code> <span class="mono dim">1.2.11</span></td><td><span class="sev">Critical</span> <span class="mono dim">9.8</span></td><td class="mono">1.2.13</td><td><span class="pill s-needs_triage">Needs triage</span><div class="desc"></div></td></tr><tr class="sev-high" data-status="needs_triage" data-open="1"><td class="stripe"><a href="https://nvd.nist.gov/vuln/detail/CVE-2018-25032">CVE-2018-25032</a><div class="desc">Memory corruption when compressing input that has many distant matches.</div></td><td><code>zlib</code> <span class="mono dim">1.2.11</span></td><td><span class="sev">High</span> <span class="mono dim">7.5</span></td><td class="mono">1.2.12</td><td><span class="pill s-needs_triage">Needs triage</span><div class="desc"></div></td></tr><tr class="sev-high" data-status="affected" data-open="1"><td class="stripe"><a href="https://nvd.nist.gov/vuln/detail/CVE-2022-0778">CVE-2022-0778</a><div class="desc">BN_mod_sqrt() can loop forever on a crafted certificate, causing denial of service.</div></td><td><code>openssl</code> <span class="mono dim">3.0.1</span></td><td><span class="sev">High</span> <span class="mono dim">7.5</span></td><td class="mono">3.0.2</td><td><span class="pill s-affected">Affected</span><div class="desc">Update OpenSSL to the current 3.0.x release in firmware 2.4.2 (planned 2026-11-20).</div></td></tr><tr class="sev-critical" data-status="not_affected" data-open="0"><td class="stripe"><a href="https://nvd.nist.gov/vuln/detail/CVE-2022-25235">CVE-2022-25235</a><div class="desc">Missing validation of multi-byte UTF-8 sequences can lead to arbitrary code execution while parsing XML.</div></td><td><code>expat</code> <span class="mono dim">2.4.1</span></td><td><span class="sev">Critical</span> <span class="mono dim">9.8</span></td><td class="mono">2.4.5</td><td><span class="pill s-not_affected">Not affected</span><div class="desc">Cannot be controlled by an attacker. Expat only parses signed configuration files from the update bundle; no untrusted XML reaches the parser.</div></td></tr><tr class="sev-critical" data-status="not_affected" data-open="0"><td class="stripe"><a href="https://nvd.nist.gov/vuln/detail/CVE-2022-32221">CVE-2022-32221</a><div class="desc">Reusing a handle for a PUT and then a POST can send wrong data or read freed memory.</div></td><td><code>libcurl</code> <span class="mono dim">7.83.0</span></td><td><span class="sev">Critical</span> <span class="mono dim">9.8</span></td><td class="mono">7.86.0</td><td><span class="pill s-not_affected">Not affected</span><div class="desc">Vulnerable code not in execute path. Firmware never reuses a curl handle for PUT followed by POST.</div></td></tr></tbody>
