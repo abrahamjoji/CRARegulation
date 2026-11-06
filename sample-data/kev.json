@@ -1,0 +1,10 @@
+{
+  "title": "CISA KEV (sample subset)",
+  "vulnerabilities": [
+    {
+      "cveID": "CVE-2022-0847",
+      "vendorProject": "Linux",
+      "product": "Kernel"
+    }
+  ]
+}

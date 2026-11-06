@@ -1,0 +1,48 @@
+{
+  "version": "1",
+  "date": "2026-11-05",
+  "assessor": "Nordwerk product security (fictional)",
+  "intended_purpose": "Controls an industrial robot arm in a factory cell.",
+  "foreseeable_use": "Connected to a plant network; serviced on site through the CAN diagnostic port.",
+  "environment": "Factory floor with restricted physical access; operated by trained staff.",
+  "expected_use_time": "About 6 years, based on hardware durability.",
+  "remote_data_processing": {
+    "present": false,
+    "rationale": "The arm keeps working if the fleet server is unreachable, so its absence prevents no function (fictional example; section 8)."
+  },
+  "applicability": [],
+  "risks": [
+    {
+      "id": "R-1",
+      "description": "Unauthorised access through the unauthenticated service port",
+      "impact": "Attacker changes motion parameters",
+      "treatment": "Require login on the service port",
+      "requirements": [
+        "I.2(d)"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "R-2",
+      "description": "CAN diagnostic port reachable in production builds",
+      "impact": "Local attacker sends diagnostic commands",
+      "treatment": "Disable the port in production builds",
+      "requirements": [
+        "I.2(j)"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "R-3",
+      "description": "Tampered firmware update",
+      "impact": "Malicious code runs on the controller",
+      "treatment": "Signed A/B updates and secure boot",
+      "requirements": [
+        "I.2(c)",
+        "I.2(f)",
+        "II.7"
+      ],
+      "status": "treated"
+    }
+  ]
+}

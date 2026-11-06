@@ -1,0 +1,185 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-05T08:58:12Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "author": "anchore",
+          "name": "syft",
+          "version": "sample"
+        }
+      ]
+    },
+    "component": {
+      "type": "file",
+      "name": "firmware"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "openssl",
+      "version": "3.0.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:conan/openssl@3.0.1",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "conan-cataloger"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/firmware/conanfile.txt"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "zlib",
+      "version": "1.2.11",
+      "licenses": [
+        {
+          "license": {
+            "id": "Zlib"
+          }
+        }
+      ],
+      "purl": "pkg:conan/zlib@1.2.11",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "conan-cataloger"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/firmware/conanfile.txt"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "libcurl",
+      "version": "7.83.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "curl"
+          }
+        }
+      ],
+      "purl": "pkg:conan/libcurl@7.83.0",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "conan-cataloger"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/firmware/conanfile.txt"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "expat",
+      "version": "2.4.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:conan/expat@2.4.1",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "conan-cataloger"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/firmware/conanfile.txt"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "mosquitto",
+      "version": "2.0.15",
+      "licenses": [
+        {
+          "license": {
+            "id": "EPL-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:conan/mosquitto@2.0.15",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "conan-cataloger"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/firmware/conanfile.txt"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "protobuf-c",
+      "version": "1.4.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "purl": "pkg:conan/protobuf-c@1.4.1",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "conan-cataloger"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/firmware/conanfile.txt"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "nlohmann_json",
+      "version": "3.11.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:conan/nlohmann_json@3.11.2",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "conan-cataloger"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/firmware/conanfile.txt"
+        }
+      ]
+    }
+  ]
+}

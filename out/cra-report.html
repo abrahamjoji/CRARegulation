@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRA Readiness Report RC-200 robot arm controller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Layout: report sheet, summary tiles first, then action, findings, Annex I, SBOM */
+  --bg: #f4f5f7; --paper: #ffffff; --ink: #14202e; --muted: #5a6676; --line: #dde1e7;
+  --accent: #1d4fa3; --accent-soft: #e6eefb;
+  --crit: #b4232c; --crit-soft: #fbe9ea; --warn: #a15c00; --warn-soft: #fdf1df;
+  --good: #1e7a46; --good-soft: #e3f4ea; --info-soft: #eef0f3;
+  --display: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --paper: #161d27; --ink: #e6ebf2; --muted: #9aa6b6; --line: #2a3442;
+    --accent: #7fa8f0; --accent-soft: #1b2a44;
+    --crit: #f08a8f; --crit-soft: #3a1c20; --warn: #f0b45c; --warn-soft: #3a2b14;
+    --good: #6fcf97; --good-soft: #17301f; --info-soft: #1f2732; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --paper: #161d27; --ink: #e6ebf2; --muted: #9aa6b6; --line: #2a3442;
+  --accent: #7fa8f0; --accent-soft: #1b2a44;
+  --crit: #f08a8f; --crit-soft: #3a1c20; --warn: #f0b45c; --warn-soft: #3a2b14;
+  --good: #6fcf97; --good-soft: #17301f; --info-soft: #1f2732; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 24px 20px 56px; display: grid; gap: 20px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
+h2 { font-size: 19px; font-weight: 600; }
+h3 { font-size: 15px; font-weight: 600; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, .mono { font-family: var(--mono); font-size: 13px; }
+.dim { color: var(--muted); } .small { font-size: 12.5px; }
+.banner { background: var(--accent-soft); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; font-size: 13.5px; }
+.banner.crit { background: var(--crit-soft); border-color: var(--crit); }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; }
+.head { display: grid; grid-template-columns: 1fr auto; gap: 16px 24px; align-items: start; }
+.eyebrow { margin: 0 0 4px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 20px; margin: 16px 0 0; }
+.meta div { display: grid; gap: 2px; } .meta dt { font-size: 12px; color: var(--muted); } .meta dd { margin: 0; font-weight: 500; }
+.laws { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.laws li { font-size: 12.5px; background: var(--info-soft); border-radius: 999px; padding: 3px 10px; }
+.score { text-align: right; }
+.score .big { font: 600 52px/1 var(--display); font-variant-numeric: tabular-nums; }
+.score .big.good { color: var(--good); } .score .big.warn { color: var(--warn); } .score .big.crit { color: var(--crit); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.tile { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.tile .v { font: 600 28px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.tile .l { font-size: 13px; color: var(--muted); }
+.tile.hot { border-color: var(--crit); background: var(--crit-soft); } .tile.hot .v { color: var(--crit); }
+.alert { background: var(--paper); border: 1px solid var(--crit); border-left: 6px solid var(--crit); border-radius: 0; padding: 18px 22px; display: grid; gap: 12px; }
+.alert p { margin: 6px 0 0; }
+.clock { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.clock li { background: var(--crit-soft); border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; font-size: 13.5px; }
+.clock b { color: var(--crit); font-weight: 600; }
+.sec-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 10px; margin-bottom: 12px; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filters button { font: 500 13px var(--body); color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-size: 12px; font-weight: 500; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.num, th.num { text-align: right; }
+tr:last-child td { border-bottom: 0; }
+td.stripe { border-left: 4px solid var(--line); min-width: 260px; }
+tr.sev-critical td.stripe { border-left-color: var(--crit); } tr.sev-high td.stripe { border-left-color: var(--warn); }
+tr.sev-critical .sev { color: var(--crit); font-weight: 600; } tr.sev-high .sev { color: var(--warn); font-weight: 600; }
+.desc { font-size: 12.5px; color: var(--muted); margin-top: 4px; max-width: 60ch; }
+.pill { display: inline-block; font-size: 12px; font-weight: 500; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+.s-needs_triage { background: var(--crit-soft); color: var(--crit); }
+.s-under_investigation, .s-affected { background: var(--warn-soft); color: var(--warn); }
+.s-not_affected, .s-fixed { background: var(--good-soft); color: var(--good); }
+.k-met { background: var(--good-soft); color: var(--good); } .k-partial { background: var(--warn-soft); color: var(--warn); } .k-missing { background: var(--crit-soft); color: var(--crit); }
+.k-unverified { background: var(--warn-soft); color: var(--warn); } .k-not_applicable { background: var(--info-soft); color: var(--muted); }
+.st-overdue, .st-done-late { background: var(--crit-soft); color: var(--crit); } .st-due, .st-waiting { background: var(--warn-soft); color: var(--warn); } .st-done { background: var(--good-soft); color: var(--good); }
+.creq small.flag { color: var(--warn); } .problems { margin: 10px 0 0; padding-left: 18px; font-size: 13.5px; }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 500; border-radius: 4px; padding: 1px 6px; margin-left: 6px; }
+.tag.kev { background: var(--crit); color: var(--paper); } .tag.warn { background: var(--warn-soft); color: var(--warn); margin: 0; }
+.tag.manual { background: var(--accent-soft); color: var(--accent); margin: 0; }
+.annex { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; }
+@media (max-width: 520px) { .annex { grid-template-columns: 1fr; } .head { grid-template-columns: 1fr; } .score { text-align: left; } }
+.bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--info-soft); margin-top: 10px; }
+.seg.k-met { background: var(--good); } .seg.k-partial { background: var(--warn); } .seg.k-missing { background: var(--crit); } .seg.k-unverified { background: var(--warn); opacity: .55; } .seg.k-not_applicable { background: var(--line); }
+.barlbl { margin: 6px 0 10px; font-size: 12.5px; color: var(--muted); }
+.chks { list-style: none; margin: 0; padding: 0; }
+.chk { display: grid; grid-template-columns: 62px 1fr auto; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); align-items: start; font-size: 13.5px; }
+.cid { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.creq small { display: block; color: var(--muted); font-size: 12px; }
+.pipeline { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; counter-reset: s; }
+.pipeline li { counter-increment: s; background: var(--info-soft); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+.pipeline li::before { content: counter(s) "  "; font-family: var(--mono); color: var(--accent); font-weight: 500; }
+footer { font-size: 12.5px; color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .filters button { transition: background .15s, color .15s; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="banner">Demo with sample data. Manufacturer and product are fictional; CVE records are real public vulnerabilities in the listed versions.</div>
+  
+  <header class="card head">
+    <div>
+      <p class="eyebrow">CRA readiness report · generated 2026-11-05</p>
+      <h1>RC-200 robot arm controller</h1>
+      <dl class="meta">
+        <div><dt>Manufacturer</dt><dd>Nordwerk Robotics GmbH (fictional)</dd></div>
+        <div><dt>Firmware</dt><dd class="mono">2.4.1 · ci-2026-11-05.17</dd></div>
+        <div><dt>CRA class</dt><dd>Default (self-assessment, Module A)</dd></div>
+        <div><dt>Support period ends</dt><dd>2032-12-31</dd></div>
+        <div><dt>Article 14 reporting</dt><dd>Applies now, and continues after support ends</dd></div>
+        <div><dt>Annex I duties</dt><dd>Applies to units placed on the market from 2027-12-11</dd></div>
+      </dl>
+      <ul class="laws"><li>Machinery Regulation (EU) 2023/1230 from 20 Jan 2027</li><li>RED delegated act (Wi-Fi module)</li></ul>
+    </div>
+    <div class="score">
+      <p class="eyebrow">Readiness score</p>
+      <div class="big crit">44<span style="font-size:24px">%</span></div>
+      <p class="small dim">70% Annex I checklist (41%)<br>30% findings decided (50%)<br>Readiness indicator, not proof of conformity</p>
+    </div>
+  </header>
+
+  <section class="tiles" aria-label="Summary">
+    <div class="tile"><div class="v">9</div><div class="l">Components in SBOM</div></div>
+    <div class="tile hot"><div class="v">4</div><div class="l">Findings needing action</div></div>
+    <div class="tile hot"><div class="v">1</div><div class="l">Known-exploited, reporting check</div></div>
+    <div class="tile"><div class="v">1/22</div><div class="l">Annex I requirements met with evidence (6 unverified)</div></div>
+    <div class="tile"><div class="v">401</div><div class="l">Days until full CRA (11 Dec 2027)</div></div>
+  </section>
+  
+    <section class="alert" aria-labelledby="rep-h0">
+      <div class="alert-head">
+        <p class="eyebrow">Reporting check · CRA Article 14</p>
+        <h2 id="rep-h0">CVE-2022-0847 in <code>linux-kernel 5.15.0</code> is on the CISA known-exploited list</h2>
+        <p>A listing alone does not trigger a report. Assess promptly whether it is being exploited in this product, and record the answer in the register. If it is, the clock runs from the moment you have reasonable certainty. Status: <span class="pill s-under_investigation">Investigating</span></p>
+      </div>
+      <ol class="clock">
+        <li><b>Within 24 h</b><span>Early warning: affected product, cross-border relevance</span></li>
+        <li><b>Within 72 h</b><span>Notification: details, impact, mitigations so far</span></li>
+        <li><b>14 days after fix</b><span>Final report: root cause, severity, corrective update</span></li>
+      </ol>
+      <p class="small dim">Fix available upstream in 5.15.25.</p>
+    </section>
+  
+  <section class="card" aria-labelledby="f-h">
+    <div class="sec-head">
+      <div><h2 id="f-h">Vulnerability findings</h2><p class="small dim" style="margin:4px 0 0">Scanner matches and register entries, with VEX triage. Not-affected findings keep their written justification as evidence.</p></div>
+      <div class="filters" role="group" aria-label="Filter findings">
+        <button type="button" id="flt-all" data-f="all" aria-pressed="true">All 6</button>
+        <button type="button" id="flt-open" data-f="open" aria-pressed="false">Needs action 4</button>
+        <button type="button" id="flt-triage" data-f="needs_triage" aria-pressed="false">Untriaged 2</button>
+        <button type="button" id="flt-na" data-f="not_affected" aria-pressed="false">Not affected</button>
+      </div>
+    </div>
+    <div class="tablewrap"><table id="findings">
+      <thead><tr><th>Vulnerability</th><th>Component</th><th>Severity</th><th>Fixed in</th><th>VEX status</th></tr></thead>
+      <tbody><tr class="sev-high" data-status="under_investigation" data-open="1"><td class="stripe"><a href="https://nvd.nist.gov/vuln/detail/CVE-2022-0847">CVE-2022-0847</a><span class="tag kev">Known exploited</span><div class="desc">Pipe buffer flags are not initialised correctly, so a local unprivileged user can overwrite data in read-only files and gain root (&quot;Dirty Pipe&quot;).</div></td><td><code>linux-kernel</code> <span class="mono dim">5.15.0</span></td><td><span class="sev">High</span> <span class="mono dim">7.8</span></td><td class="mono">5.15.25</td><td><span class="pill s-under_investigation">Investigating</span><div class="desc">Known exploited in the wild. Checking whether any local user or process on the controller can reach it.</div></td></tr><tr class="sev-critical" data-status="needs_triage" data-open="1"><td class="stripe"><a href="https://nvd.nist.gov/vuln/detail/CVE-2022-37434">CVE-2022-37434</a><div class="desc">Heap buffer overflow in inflate when an application reads a gzip header with a large extra field.</div></td><td><code>zlib</code> <span class="mono dim">1.2.11</span></td><td><span class="sev">Critical</span> <span class="mono dim">9.8</span></td><td class="mono">1.2.13</td><td><span class="pill s-needs_triage">Needs triage</span><div class="desc"></div></td></tr><tr class="sev-high" data-status="needs_triage" data-open="1"><td class="stripe"><a href="https://nvd.nist.gov/vuln/detail/CVE-2018-25032">CVE-2018-25032</a><div class="desc">Memory corruption when compressing input that has many distant matches.</div></td><td><code>zlib</code> <span class="mono dim">1.2.11</span></td><td><span class="sev">High</span> <span class="mono dim">7.5</span></td><td class="mono">1.2.12</td><td><span class="pill s-needs_triage">Needs triage</span><div class="desc"></div></td></tr><tr class="sev-high" data-status="affected" data-open="1"><td class="stripe"><a href="https://nvd.nist.gov/vuln/detail/CVE-2022-0778">CVE-2022-0778</a><div class="desc">BN_mod_sqrt() can loop forever on a crafted certificate, causing denial of service.</div></td><td><code>openssl</code> <span class="mono dim">3.0.1</span></td><td><span class="sev">High</span> <span class="mono dim">7.5</span></td><td class="mono">3.0.2</td><td><span class="pill s-affected">Affected</span><div class="desc">Update OpenSSL to the current 3.0.x release in firmware 2.4.2 (planned 2026-11-20).</div></td></tr><tr class="sev-critical" data-status="not_affected" data-open="0"><td class="stripe"><a href="https://nvd.nist.gov/vuln/detail/CVE-2022-25235">CVE-2022-25235</a><div class="desc">Missing validation of multi-byte UTF-8 sequences can lead to arbitrary code execution while parsing XML.</div></td><td><code>expat</code> <span class="mono dim">2.4.1</span></td><td><span class="sev">Critical</span> <span class="mono dim">9.8</span></td><td class="mono">2.4.5</td><td><span class="pill s-not_affected">Not affected</span><div class="desc">Cannot be controlled by an attacker. Expat only parses signed configuration files from the update bundle; no untrusted XML reaches the parser.</div></td></tr><tr class="sev-critical" data-status="not_affected" data-open="0"><td class="stripe"><a href="https://nvd.nist.gov/vuln/detail/CVE-2022-32221">CVE-2022-32221</a><div class="desc">Reusing a handle for a PUT and then a POST can send wrong data or read freed memory.</div></td><td><code>libcurl</code> <span class="mono dim">7.83.0</span></td><td><span class="sev">Critical</span> <span class="mono dim">9.8</span></td><td class="mono">7.86.0</td><td><span class="pill s-not_affected">Not affected</span><div class="desc">Vulnerable code not in execute path. Firmware never reuses a curl handle for PUT followed by POST.</div></td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="card" aria-labelledby="v-h">
+    <h2 id="v-h">Vulnerability register and Article 14 clock</h2>
+    <p class="small dim" style="margin:4px 0 12px">Deadlines run from when the manufacturer has reasonable certainty of exploitation or a severe incident. Inform impacted users as well.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Entry</th><th>Source</th><th>Exploited in product</th><th>Reporting</th><th>Upstream</th><th>Release decision</th></tr></thead>
+      <tbody><tr><td><code>VR-2026-001</code><div class="desc">CVE-2022-0847</div></td><td>kev</td><td>Not assessed</td><td><span class="pill st-due">Assess exploitation</span></td><td>maintainer aware</td><td>none recorded</td></tr><tr><td><code>VR-2026-002</code><div class="desc">CVE-2022-0778</div></td><td>scanner</td><td>No</td><td><span class="dim">Nothing to report</span></td><td>maintainer aware</td><td>fix before release</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="card" aria-labelledby="r-h">
+    <h2 id="r-h">Cybersecurity risk assessment</h2>
+    <p class="small dim" style="margin:4px 0 12px">Version 1, dated 2026-11-05. Remote data processing: No. Summary of the assessment supplied for this build.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Risk</th><th>Description</th><th>Treatment</th><th>Requirements</th><th>Status</th></tr></thead>
+      <tbody><tr><td><code>R-1</code></td><td>Unauthorised access through the unauthenticated service port</td><td>Require login on the service port</td><td class="mono small">I.2(d)</td><td>open</td></tr><tr><td><code>R-2</code></td><td>CAN diagnostic port reachable in production builds</td><td>Disable the port in production builds</td><td class="mono small">I.2(j)</td><td>open</td></tr><tr><td><code>R-3</code></td><td>Tampered firmware update</td><td>Signed A/B updates and secure boot</td><td class="mono small">I.2(c), I.2(f), II.7</td><td>treated</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="card" aria-labelledby="a-h">
+    <h2 id="a-h">Annex I essential requirements</h2>
+    <p class="small dim" style="margin:4px 0 0">Claims are checked: "Met" needs a linked evidence file, and "N/A" needs a reason in the risk assessment. A file's existence is checked, not its content. Part I covers the product, Part II covers vulnerability handling.</p>
+    <div class="annex" style="margin-top:14px">
+      <div><h3>Part I · Product properties</h3><div class="bar"><span class="seg k-unverified" style="flex:5" title="5 unverified"></span><span class="seg k-partial" style="flex:7" title="7 partial"></span><span class="seg k-missing" style="flex:2" title="2 missing"></span></div><p class="barlbl">0 of 14 met with evidence</p><ul class="chks"><li class="chk c-partial"><span class="cid">I.1</span><span class="creq">Appropriate level of cybersecurity based on the risks<small>Computed: open risks R-1, R-2</small></span><span class="pill k-partial">Partial</span></li>
+<li class="chk c-partial"><span class="cid">I.2(a)</span><span class="creq">No known exploitable vulnerabilities at release<small>Scan in CI; open findings are listed in this report</small></span><span class="pill k-partial">Partial</span></li>
+<li class="chk c-partial"><span class="cid">I.2(b)</span><span class="creq">Secure-by-default configuration, reset to original state<small>Default admin password removed; factory reset untested</small></span><span class="pill k-partial">Partial</span></li>
+<li class="chk c-unverified"><span class="cid">I.2(c)</span><span class="creq">Vulnerabilities can be fixed through security updates<small>Signed A/B OTA updates (RAUC)</small><small class="flag">Claimed met, with no evidence file linked</small></span><span class="pill k-unverified">Unverified</span></li>
+<li class="chk c-partial"><span class="cid">I.2(d)</span><span class="creq">Protection from unauthorised access<small>Web UI login; service port without auth</small></span><span class="pill k-partial">Partial</span></li>
+<li class="chk c-unverified"><span class="cid">I.2(e)</span><span class="creq">Confidentiality of stored and transmitted data<small>TLS 1.3 to fleet server; encrypted data partition</small><small class="flag">Claimed met, with no evidence file linked</small></span><span class="pill k-unverified">Unverified</span></li>
+<li class="chk c-unverified"><span class="cid">I.2(f)</span><span class="creq">Integrity of data, commands and programs<small>Secure boot chain, signed firmware</small><small class="flag">Claimed met, with no evidence file linked</small></span><span class="pill k-unverified">Unverified</span></li>
+<li class="chk c-unverified"><span class="cid">I.2(g)</span><span class="creq">Data minimisation<small>Only telemetry needed for maintenance</small><small class="flag">Claimed met, with no evidence file linked</small></span><span class="pill k-unverified">Unverified</span></li>
+<li class="chk c-partial"><span class="cid">I.2(h)</span><span class="creq">Availability of essential functions, DoS resilience<small>Safety MCU independent; no rate limiting on API</small></span><span class="pill k-partial">Partial</span></li>
+<li class="chk c-unverified"><span class="cid">I.2(i)</span><span class="creq">Minimise negative impact on other devices and networks<small>Outbound traffic allow-list</small><small class="flag">Claimed met, with no evidence file linked</small></span><span class="pill k-unverified">Unverified</span></li>
+<li class="chk c-partial"><span class="cid">I.2(j)</span><span class="creq">Limit attack surfaces, including external interfaces<small>CAN diagnostic port open in production builds</small></span><span class="pill k-partial">Partial</span></li>
+<li class="chk c-partial"><span class="cid">I.2(k)</span><span class="creq">Exploitation mitigation mechanisms<small>ASLR, stack protector; no hardened kernel config yet</small></span><span class="pill k-partial">Partial</span></li>
+<li class="chk c-missing"><span class="cid">I.2(l)</span><span class="creq">Security logging and monitoring, with opt-out<small>Not implemented</small></span><span class="pill k-missing">Missing</span></li>
+<li class="chk c-missing"><span class="cid">I.2(m)</span><span class="creq">Secure deletion of data and settings<small>Not implemented</small></span><span class="pill k-missing">Missing</span></li></ul></div>
+      <div><h3>Part II · Vulnerability handling</h3><div class="bar"><span class="seg k-met" style="flex:1" title="1 met"></span><span class="seg k-unverified" style="flex:1" title="1 unverified"></span><span class="seg k-partial" style="flex:3" title="3 partial"></span><span class="seg k-missing" style="flex:3" title="3 missing"></span></div><p class="barlbl">1 of 8 met with evidence</p><ul class="chks"><li class="chk c-met"><span class="cid">II.1</span><span class="creq">Identify and document components (SBOM)<small>CycloneDX SBOM generated on every release build</small><small class="flag">Checked by this pipeline run</small></span><span class="pill k-met">Met</span></li>
+<li class="chk c-partial"><span class="cid">II.2</span><span class="creq">Address vulnerabilities without delay, via security updates<small>Triage process defined; patch SLA not yet agreed</small></span><span class="pill k-partial">Partial</span></li>
+<li class="chk c-partial"><span class="cid">II.3</span><span class="creq">Regular tests and reviews of security<small>CVE scan per build; no penetration test yet</small></span><span class="pill k-partial">Partial</span></li>
+<li class="chk c-missing"><span class="cid">II.4</span><span class="creq">Publicly disclose fixed vulnerabilities<small>No security advisory page</small></span><span class="pill k-missing">Missing</span></li>
+<li class="chk c-missing"><span class="cid">II.5</span><span class="creq">Coordinated vulnerability disclosure policy<small>Draft in progress</small></span><span class="pill k-missing">Missing</span></li>
+<li class="chk c-missing"><span class="cid">II.6</span><span class="creq">Contact address for reporting vulnerabilities<small>security.txt not published</small></span><span class="pill k-missing">Missing</span></li>
+<li class="chk c-unverified"><span class="cid">II.7</span><span class="creq">Secure distribution of updates<small>Signed bundles over TLS</small><small class="flag">Claimed met, with no evidence file linked</small></span><span class="pill k-unverified">Unverified</span></li>
+<li class="chk c-partial"><span class="cid">II.8</span><span class="creq">Security updates free of charge, with advisory messages<small>Free updates; advisory text template missing</small></span><span class="pill k-partial">Partial</span></li></ul></div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="s-h">
+    <h2 id="s-h">Software bill of materials</h2>
+    <p class="small dim" style="margin:4px 0 12px">CycloneDX. Manual entries cover components the scanner cannot see. 0 with no version, 7 with no supplier.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Component</th><th>Version</th><th>Type</th><th>Source</th><th>License</th><th>Package URL</th><th class="num">Findings</th></tr></thead>
+      <tbody><tr><td><code>openssl</code></td><td class="mono">3.0.1</td><td>library</td><td><span class="dim">Auto</span></td><td>Apache-2.0</td><td class="mono dim small">pkg:conan/openssl@3.0.1</td><td class="num"><span class="tag warn">1</span></td></tr><tr><td><code>zlib</code></td><td class="mono">1.2.11</td><td>library</td><td><span class="dim">Auto</span></td><td>Zlib</td><td class="mono dim small">pkg:conan/zlib@1.2.11</td><td class="num"><span class="tag warn">2</span></td></tr><tr><td><code>libcurl</code></td><td class="mono">7.83.0</td><td>library</td><td><span class="dim">Auto</span></td><td>curl</td><td class="mono dim small">pkg:conan/libcurl@7.83.0</td><td class="num"><span class="tag warn">1</span></td></tr><tr><td><code>expat</code></td><td class="mono">2.4.1</td><td>library</td><td><span class="dim">Auto</span></td><td>MIT</td><td class="mono dim small">pkg:conan/expat@2.4.1</td><td class="num"><span class="tag warn">1</span></td></tr><tr><td><code>mosquitto</code></td><td class="mono">2.0.15</td><td>library</td><td><span class="dim">Auto</span></td><td>EPL-2.0</td><td class="mono dim small">pkg:conan/mosquitto@2.0.15</td><td class="num"><span class="dim">0</span></td></tr><tr><td><code>protobuf-c</code></td><td class="mono">1.4.1</td><td>library</td><td><span class="dim">Auto</span></td><td>BSD-2-Clause</td><td class="mono dim small">pkg:conan/protobuf-c@1.4.1</td><td class="num"><span class="dim">0</span></td></tr><tr><td><code>nlohmann_json</code></td><td class="mono">3.11.2</td><td>library</td><td><span class="dim">Auto</span></td><td>MIT</td><td class="mono dim small">pkg:conan/nlohmann_json@3.11.2</td><td class="num"><span class="dim">0</span></td></tr><tr><td><code>linux-kernel</code></td><td class="mono">5.15.0</td><td>library</td><td><span class="tag manual">Manual</span></td><td>GPL-2.0-only</td><td class="mono dim small">pkg:generic/linux-kernel@5.15.0</td><td class="num"><span class="tag warn">1</span></td></tr><tr><td><code>nordwerk-motor-sdk</code><div class="desc">No public CVE data; supplier security statement requested</div></td><td class="mono">4.2.0</td><td>library</td><td><span class="tag manual">Manual</span></td><td>Proprietary</td><td class="mono dim small">pkg:generic/nordwerk-motor-sdk@4.2.0</td><td class="num"><span class="dim">0</span></td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="card" aria-labelledby="p-h">
+    <h2 id="p-h">How this report was produced</h2>
+    <ol class="pipeline" style="margin-top:12px">
+      <li>SBOM by Syft + manual list</li><li>CVE match by Grype</li>
+      <li>Known-exploited check against CISA KEV</li><li>Triage in OpenVEX</li><li>Register, risk assessment and evidence checks</li><li>Report and JSON evidence archived per release</li>
+    </ol>
+    <p class="small dim" style="margin:12px 0 0">Evidence: the SBOM, scan, VEX file, register, risk assessment and <code>cra-summary.json</code>. The manufacturer remains responsible for the EU declaration of conformity.</p>
+  </section>
+  <footer>Security contact: security@nordwerk.example · CRA reporting duty applies since 2026-09-11 · Full application 2027-12-11</footer>
+</main>
+<script>
+(function () {
+  var buttons = document.querySelectorAll('.filters button');
+  var rows = document.querySelectorAll('#findings tbody tr');
+  function apply(f) {
+    rows.forEach(function (r) {
+      var show = f === 'all' || (f === 'open' ? r.dataset.open === '1' : r.dataset.status === f);
+      r.hidden = !show;
+    });
+    buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.f === f)); });
+  }
+  buttons.forEach(function (b) { b.addEventListener('click', function () { apply(b.dataset.f); }); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+[requires]
+openssl/3.0.1
+zlib/1.2.11
+libcurl/7.83.0
+expat/2.4.1
+mosquitto/2.0.15
+protobuf-c/1.4.1
+nlohmann_json/3.11.2
+
+[generators]
+CMakeDeps
+CMakeToolchain

@@ -1,0 +1,37 @@
+{
+  "entries": [
+    {
+      "id": "VR-2026-001",
+      "type": "vulnerability",
+      "vulnerability": "CVE-2022-0847",
+      "source": "kev",
+      "first_seen": "2026-11-05T09:00:00Z",
+      "actively_exploited_in_product": null,
+      "upstream": {
+        "status": "maintainer_aware",
+        "reference": "Public CVE record"
+      }
+    },
+    {
+      "id": "VR-2026-002",
+      "type": "vulnerability",
+      "vulnerability": "CVE-2022-0778",
+      "source": "scanner",
+      "first_seen": "2026-11-05T09:00:00Z",
+      "actively_exploited_in_product": false,
+      "upstream": {
+        "status": "maintainer_aware",
+        "reference": "Public CVE record"
+      },
+      "release_decision": {
+        "decision": "fix_before_release",
+        "severity": "High",
+        "exploitability": "Reachable through certificate parsing",
+        "impact": "Denial of service",
+        "rationale": "Fix is available and planned for firmware 2.4.2",
+        "decided_by": "Product security lead (fictional)",
+        "date": "2026-11-05"
+      }
+    }
+  ]
+}
