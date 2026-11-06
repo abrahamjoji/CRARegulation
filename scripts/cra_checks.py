@@ -90,10 +90,20 @@ def validate_risk_assessment(ra, known_ids):
             problems.append(f"risk {rid}: list the Annex I requirements that treat it")
         else:
             problems += [f"risk {rid}: unknown requirement {r}" for r in reqs if str(r) not in known_ids]
-    for entry in ra.get("applicability") or []:
+    applicability = ra.get("applicability", [])
+    if not isinstance(applicability, list):
+        problems.append("risk assessment: applicability must be a list")
+        applicability = []
+    applicable_seen = set()
+    for entry in applicability:
         req = entry.get("requirement") if isinstance(entry, dict) else None
         if str(req) not in known_ids:
             problems.append(f"applicability: unknown requirement {req}")
+        if str(req) in applicable_seen:
+            problems.append(f"applicability: duplicate requirement {req}")
+        applicable_seen.add(str(req))
+        if not isinstance(entry, dict) or not isinstance(entry.get("applies"), bool):
+            problems.append(f"applicability {req}: applies must be true or false")
     return problems
 
 
@@ -101,9 +111,12 @@ def not_applicable_rationales(ra):
     """Requirements the risk assessment rules out, with a written reason (para 33)."""
     out = {}
     if isinstance(ra, dict):
-        for entry in ra.get("applicability") or []:
-            if isinstance(entry, dict) and entry.get("applies") is False and text(entry.get("rationale")):
-                out[entry.get("requirement")] = entry["rationale"]
+        entries = ra.get("applicability", [])
+        for entry in entries if isinstance(entries, list) else []:
+            if (isinstance(entry, dict) and isinstance(entry.get("requirement"), str)
+                    and entry["requirement"].startswith("I.2(")
+                    and entry.get("applies") is False and text(entry.get("rationale"))):
+                out[entry["requirement"]] = entry["rationale"]
     return out
 
 
@@ -169,7 +182,9 @@ def score_checklist(items):
 # Product data
 
 def product_problems(product, today):
-    problems = []
+    problems = [f"product: {field} is empty" for field in
+                ("product", "manufacturer", "firmware_version", "build_id", "security_contact")
+                if field in product and not text(product.get(field))]
     if not text(product.get("classification_rationale")):
         problems.append("product: classification_rationale is empty; record the core functionality behind the CRA class (para 139)")
     market = product.get("market")
@@ -228,6 +243,11 @@ def vex_problem(statement):
     status = statement.get("status")
     if status == "not_affected" and not (text(statement.get("justification")) and text(statement.get("impact_statement"))):
         return "not_affected needs a justification and a written impact_statement (para 235)"
+    if status == "not_affected" and statement.get("justification") not in (
+        "component_not_present", "vulnerable_code_not_present", "vulnerable_code_not_in_execute_path",
+        "vulnerable_code_cannot_be_controlled_by_adversary", "inline_mitigations_already_exist",
+    ):
+        return "not_affected has an unknown OpenVEX justification"
     if status == "affected" and not text(statement.get("action_statement")):
         return "affected needs an action_statement"
     if status not in ("not_affected", "affected", "fixed", "under_investigation"):
@@ -243,7 +263,7 @@ def validate_register(doc):
     entries = doc.get("entries") if isinstance(doc, dict) else None
     if not isinstance(entries, list):
         return [], ["register: 'entries' must be a list"]
-    problems, seen = [], set()
+    problems, seen, identities = [], set(), set()
     for entry in entries:
         if not isinstance(entry, dict) or not text(entry.get("id")):
             problems.append("register: every entry needs an id")
@@ -266,6 +286,23 @@ def validate_register(doc):
                 problems.append(f"register {eid}: {key} is not a date or time")
         if entry.get("actively_exploited_in_product") is True and not text(entry.get("aware_at")):
             problems.append(f"register {eid}: exploited in the product, so record aware_at, which starts the clock (para 213)")
+        exploited = entry.get("actively_exploited_in_product")
+        if exploited is not None and not isinstance(exploited, bool):
+            problems.append(f"register {eid}: actively_exploited_in_product must be true, false or null")
+        if kind == "vulnerability":
+            purl = entry.get("purl")
+            if purl is not None and (not text(purl) or not purl.startswith("pkg:")):
+                problems.append(f"register {eid}: purl must be a package URL")
+            identity = (str(entry.get("vulnerability")), str(purl or ""))
+            if identity in identities:
+                problems.append(f"register {eid}: duplicate vulnerability/component identity")
+            identities.add(identity)
+        aware = parse_time(entry.get("aware_at"))
+        if aware:
+            for key in ("early_warning_at", "notification_at", "final_report_at", "users_informed_at"):
+                event = parse_time(entry.get(key))
+                if event and event < aware:
+                    problems.append(f"register {eid}: {key} precedes awareness")
         upstream = entry.get("upstream")
         if upstream is not None and (not isinstance(upstream, dict) or upstream.get("status") not in UPSTREAM):
             problems.append(f"register {eid}: upstream.status must be one of {', '.join(UPSTREAM)}")
@@ -277,7 +314,7 @@ def validate_register(doc):
                 entry["release_decision"] = None
             else:
                 problems += [f"register {eid}: release_decision.{k} is empty" for k in DECISION_FIELDS if not text(decision.get(k))]
-    return [e for e in entries if isinstance(e, dict)], problems
+    return [e for e in entries if isinstance(e, dict) and text(e.get("id"))], problems
 
 
 def reporting_clock(entry, now):
@@ -342,6 +379,9 @@ def gate_failures(d, release):
         return fails
 
     fails += d["risk_problems"] + d["product_problems"]
+    fails += [f"{i['id']} is incomplete: {i['effective']}" for i in d["items"]
+              if i["effective"] in ("missing", "partial")]
+
     if d["sbom"]["no_version"]:
         fails.append(f"SBOM components with no version cannot be matched to CVEs: {', '.join(d['sbom']['no_version'])}")
     fails += [f"not triaged: {f['id']}" for f in d["findings"] if f["status"] == "needs_triage"]
@@ -349,6 +389,8 @@ def gate_failures(d, release):
         if not f["open"]:
             continue
         entry = f["entry"] or {}
+        if (entry.get("release_decision") or {}).get("decision") == "fix_before_release":
+            fails.append(f"open finding {f['id']} must be fixed before release according to its release decision")
         if not entry.get("release_decision"):
             fails.append(f"no recorded release decision for open finding {f['id']} (para 237)")
         if f["kev"] and not isinstance(entry.get("actively_exploited_in_product"), bool):

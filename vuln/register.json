@@ -10,7 +10,8 @@
       "upstream": {
         "status": "maintainer_aware",
         "reference": "Public CVE record"
-      }
+      },
+      "purl": "pkg:generic/linux-kernel@5.15.0"
     },
     {
       "id": "VR-2026-002",
@@ -31,7 +32,8 @@
         "rationale": "Fix is available and planned for firmware 2.4.2",
         "decided_by": "Product security lead (fictional)",
         "date": "2026-11-05"
-      }
+      },
+      "purl": "pkg:conan/openssl@3.0.1"
     }
   ]
 }
