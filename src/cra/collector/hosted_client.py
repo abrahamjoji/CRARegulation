@@ -17,7 +17,7 @@ from pathlib import Path
 
 from ..common.archive import ArchiveLimits, create_tar_gz, safe_extract
 from ..common.bundle import verify_manifest
-from ..common.errors import EXIT_INCOMPLETE, EXIT_PASSED, AuthError, ConfigError, OperationalError, UntrustedInputError
+from ..common.errors import EXIT_INCOMPLETE, EXIT_PASSED, AuthError, ConfigError, CraError, OperationalError, UntrustedInputError
 from ..common.safety import read_json, redact_text, sha256_file
 
 RETRIES = 4
@@ -113,7 +113,7 @@ def analyze_hosted(config, collection, destination, args):
     if destination.exists():
         shutil.rmtree(destination)
     if not (collection / "collection.json").is_file():
-        raise OperationalError("collection_missing", f"No collection at {collection}. Run `cra collect` first.")
+        raise CraError("collection_missing", f"No collection at {collection}. Run `cra collect` first.", EXIT_INCOMPLETE)
     with tempfile.TemporaryDirectory(prefix="cra-upload-") as work:
         bundle = build_upload(config, collection, work)
         digest = sha256_file(bundle)

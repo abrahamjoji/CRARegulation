@@ -7,12 +7,11 @@ from pathlib import Path
 from .. import __version__
 from ..common.bundle import EvidenceStore, write_manifest
 from ..common.errors import ConfigError, UntrustedInputError, diagnostic
-from ..common.safety import Limits, read_json, redact_text, run_tool, sha256_bytes, tool_environment, write_json
+from ..common.safety import Limits, read_json, run_tool, sha256_bytes, tool_environment, write_json
 from . import artifact as artifact_module
 from . import cmake, conan, container, records as records_module
 
 COLLECTION_SCHEMA = "cra.collection/1"
-STATUS_ORDER = ("complete", "partial", "unsupported", "missing", "failed", "not_configured")
 
 
 def source_status(kind, subject, status, reason="", required=True, **details):
@@ -49,9 +48,9 @@ def _collect_conan(configuration, config, store, out):
             configuration.required))
         return {}
     config.scope.require(configuration.conan_graph, "conan_graph")
-    raw = configuration.conan_graph.read_bytes()
     try:
         document = read_json(configuration.conan_graph)
+        raw = configuration.conan_graph.read_bytes()
         evidence = store.add_json("collector-input", f"conan:{configuration.id}", document, f"conan-{configuration.id}.graph.json", original_bytes=raw, adapter="conan-graph-json")
         parsed = conan.collect_graph(document, configuration.id, evidence)
     except UntrustedInputError as exc:
@@ -176,9 +175,9 @@ def _collect_records(config, store, out):
             out["sources"].append(source_status("customer-record", path.name, "missing", f"{path} not found"))
             continue
         config.scope.require(path, "component records")
-        raw = path.read_bytes()
         try:
-            document = read_json(path)
+            document = read_json(path, 16 * 1024 * 1024)
+            raw = path.read_bytes()
             evidence = store.add_json("customer-input", f"records:{path.name}", document, f"records-{path.name}", original_bytes=raw, adapter="component-records")
             observations, covered = records_module.parse_records(document, evidence)
         except UntrustedInputError as exc:

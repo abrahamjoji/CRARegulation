@@ -189,6 +189,22 @@ kev = "kev.json"
         self.assertTrue(sbom["dependencies"] is not None)
 
 
+class FalseMatches(Base):
+    def test_measurement_counts_only_labelled_findings(self):
+        self.ws.set_behaviour({"matches": {"build": [cpe_match("CVE-2000-10", "zlib", "1.2.13", ZLIB), cpe_match("CVE-2000-11", "fmt", "12.1.0", "pkg:conan/fmt@12.1.0"),
+                                                     cpe_match("CVE-2000-12", "zlib", "1.2.13", ZLIB)], "final": [], "builder": []}})
+        result = self.ws.analyze()
+        metrics = measure.compare_findings(result, {"labels": [
+            {"vulnerability": "CVE-2000-10", "purl": ZLIB, "label": "true"},
+            {"vulnerability": "CVE-2000-11", "purl": "pkg:conan/fmt@12.1.0", "label": "false"},
+            {"vulnerability": "CVE-2000-99", "purl": ZLIB, "label": "true"}]})
+        self.assertEqual(metrics["labelled_true_found"], 1)
+        self.assertEqual(metrics["labelled_true_missed"], [f"CVE-2000-99 on {ZLIB}"])
+        self.assertEqual([row["vulnerability"] for row in metrics["labelled_false_reported"]], ["CVE-2000-11"])
+        self.assertEqual(metrics["unlabelled"], 1)
+        self.assertEqual(metrics["false_match_rate_of_labelled"], 0.5)
+
+
 class Findings(Base):
     def blocked(self):
         return self.ws.analyze()

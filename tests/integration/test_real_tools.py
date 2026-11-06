@@ -113,6 +113,60 @@ class ReferenceEndToEnd(unittest.TestCase):
 
 
 @unittest.skipUnless(ENABLED, "set CRA_INTEGRATION=1 to run real external tools")
+class HostedWithRealScanner(unittest.TestCase):
+    """Real uvicorn, real worker, real Grype and the real client over loopback."""
+
+    def test_hosted_result_matches_local_result(self):
+        import socket
+        import time
+        from cra.hosted.db import Database
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            with socket.socket() as sock:
+                sock.bind(("127.0.0.1", 0))
+                port = sock.getsockname()[1]
+            env = {"PATH": os.environ["PATH"], "PYTHONPATH": str(REPO / "src"), "CRA_SERVER_DATA": str(root / "data"), "HOME": str(Path.home()),
+                   "CRA_SERVER_GRYPE": str(REPO / ".tools" / "grype"), "CRA_SERVER_KEV": str(OUTPUT / "kev.json"),
+                   "GRYPE_DB_CACHE_DIR": str(Path.home() / ".cache" / "grype" / "db")}
+            admin = [sys.executable, "-m", "cra.hosted.admin"]
+            (root / "data").mkdir()
+            from cra.hosted.db import SCHEMA  # noqa: F401
+            database = Database(root / "data" / "control.sqlite3")
+            database.initialize()
+            tenant = database.create_tenant("integration")
+            project = database.create_project(tenant, "gateway", policy_toml=(REFERENCE / "policy.toml").read_text())
+            token = database.create_token(project, ["submit", "read"])[0]
+            server = subprocess.Popen([sys.executable, "-m", "uvicorn", "--factory", "cra.hosted.api:create_app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"], env=env)
+            worker = subprocess.Popen([sys.executable, "-m", "cra.hosted.worker"], env=env)
+            try:
+                for _ in range(100):
+                    try:
+                        socket.create_connection(("127.0.0.1", port), timeout=0.2).close()
+                        break
+                    except OSError:
+                        time.sleep(0.1)
+                text = (REFERENCE / "cra.toml").read_text() + f'\n[hosted]\nurl = "http://127.0.0.1:{port}"\npoll_seconds = 1\ntimeout_seconds = 300\n'
+                config = REFERENCE / "out-hosted.toml"
+                config.write_text(text)
+                self.addCleanup(config.unlink, missing_ok=True)
+                os.environ["CRA_TOKEN"] = token
+                self.addCleanup(os.environ.pop, "CRA_TOKEN")
+                out = root / "hosted-analysis"
+                self.assertEqual(cli.main(["collect", "--config", str(config), "--out", str(root / "collection")]), 0)
+                self.assertEqual(cli.main(["analyze", "--config", str(config), "--hosted", "--collection", str(root / "collection"), "--out", str(out)]), 0)
+                hosted = read_json(out / "result.json")
+                local = read_json(ANALYSIS / "result.json")
+                self.assertEqual(hosted["scan_status"], "complete")
+                self.assertEqual({f["id"] for f in hosted["findings"]}, {f["id"] for f in local["findings"]})
+                self.assertEqual(hosted["vulnerability_data"]["grype"]["built"], local["vulnerability_data"]["grype"]["built"])
+                self.assertEqual(evaluate_gate(out, "build")["outcome"], "policy_blocked")
+            finally:
+                for process in (server, worker):
+                    process.kill()
+                    process.wait()
+
+
+@unittest.skipUnless(ENABLED, "set CRA_INTEGRATION=1 to run real external tools")
 class RealRegistryImage(unittest.TestCase):
     def test_syft_pulls_a_pinned_image_without_a_docker_daemon(self):
         """Needs registry access. The digest is looked up here, so nothing mutable is scanned."""

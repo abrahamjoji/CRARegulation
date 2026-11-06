@@ -27,7 +27,11 @@ def _safe_reply(reply, name):
     """A reply file is named by the reply index, which is customer-controlled input."""
     if not isinstance(name, str) or "/" in name or "\\" in name or name in (".", ".."):
         raise UntrustedInputError("cmake_reply_invalid", f"unsafe reply file name: {name!r}")
-    return read_json(reply / name, MAX_REPLY_FILE)
+    target = reply / name
+    # The build tree may come from untrusted code, so a reply file must not be a link out.
+    if target.is_symlink():
+        raise UntrustedInputError("cmake_reply_invalid", f"reply file is a symlink: {name!r}")
+    return read_json(target, MAX_REPLY_FILE)
 
 
 def find_index(build_dir):
@@ -76,7 +80,7 @@ def _fragment_paths(fragment):
 def read_reply(index_path):
     """Load the reply tree into plain structures, validating shape and bounds."""
     reply = index_path.parent
-    index = read_json(index_path, MAX_REPLY_FILE)
+    index = _safe_reply(reply, index_path.name)
     objects = index.get("objects") if isinstance(index, dict) else None
     if not isinstance(objects, list):
         raise UntrustedInputError("cmake_reply_invalid", "reply index has no objects list")

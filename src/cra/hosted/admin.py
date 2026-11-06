@@ -54,3 +54,7 @@ def main(argv=None):
 
 def entrypoint():
     sys.exit(main())
+
+
+if __name__ == "__main__":
+    entrypoint()

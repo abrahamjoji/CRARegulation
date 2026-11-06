@@ -467,6 +467,28 @@ class RealServerClient(Base):
 
 
 @unittest.skipUnless(HAVE_HOSTED, "hosted extras are not installed")
+class OperatorCommands(unittest.TestCase):
+    def test_documented_admin_commands_run_and_issue_a_working_token(self):
+        with tempfile.TemporaryDirectory() as work:
+            env = {"PATH": os.environ.get("PATH", ""), "PYTHONPATH": str(helpers.REPO / "src"), "CRA_SERVER_DATA": work}
+
+            def admin(*args):
+                done = subprocess.run([sys.executable, "-m", "cra.hosted.admin", *args], capture_output=True, text=True, env=env)
+                self.assertEqual(done.returncode, 0, done.stderr)
+                return done.stdout.strip()
+
+            tenant = admin("create-tenant", "--name", "dev")
+            project = admin("create-project", "--tenant", tenant, "--name", "gateway")
+            token = admin("create-token", "--project", project, "--scopes", "submit,read")
+            self.assertTrue(token.startswith("cra_"))
+            database = Database(Path(work) / "control.sqlite3")
+            principal = database.authenticate(token)
+            self.assertEqual((principal.tenant_id, principal.project_id), (tenant, project))
+            self.assertEqual(principal.scopes, {"submit", "read"})
+            self.assertEqual(admin("purge-expired"), "0")
+
+
+@unittest.skipUnless(HAVE_HOSTED, "hosted extras are not installed")
 class ClientRules(unittest.TestCase):
     def test_url_rules(self):
         self.assertEqual(hosted_client.check_url("https://x.example/"), "https://x.example")

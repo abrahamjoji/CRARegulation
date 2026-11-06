@@ -7,6 +7,7 @@ import re
 import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -90,14 +91,15 @@ def create_app(settings: Settings | None = None):
             if digest.hexdigest() != declared:
                 raise HTTPException(status_code=400, detail={"code": "content_hash_mismatch", "message": "The upload does not match X-Content-SHA256."})
             try:
-                members = inspect_tar(temporary, UPLOAD_LIMITS)
+                # Decompression is slow on purpose-built input, so it stays off the event loop.
+                members = await run_in_threadpool(inspect_tar, temporary, UPLOAD_LIMITS)
             except UntrustedInputError as exc:
                 database.audit("job.rejected", exc.code, tenant_id=found.tenant_id, project_id=found.project_id, actor=found.token_id)
                 raise HTTPException(status_code=422, detail={"code": exc.code, "message": "The evidence bundle failed validation."}) from exc
             if "collection/collection.json" not in members or "collection/manifest.json" not in members:
                 raise HTTPException(status_code=422, detail={"code": "bundle_incomplete", "message": "The bundle needs collection/collection.json and collection/manifest.json."})
             try:
-                job, created = database.create_job(found, key, declared, received, settings.max_active_jobs_per_project)
+                job, created = await run_in_threadpool(database.create_job, found, key, declared, received, settings.max_active_jobs_per_project)
             except OverflowError as exc:
                 raise HTTPException(status_code=429, detail={"code": "too_many_active_jobs", "message": "Wait for active jobs to finish."}, headers={"Retry-After": "30"}) from exc
             if job is None:

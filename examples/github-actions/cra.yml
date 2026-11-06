@@ -1,4 +1,5 @@
 # Example customer workflow. Replace the image digest and the build steps with your own.
+# Copy .github/actions/cra-collect into your repository, or reference it by commit SHA.
 # Trust boundary: the build runs untrusted pull-request code and holds no credentials.
 # The token only appears in a separate job that runs no repository code, and never on pull requests.
 name: Supply-chain evidence

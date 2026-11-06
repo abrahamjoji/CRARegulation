@@ -128,8 +128,8 @@ def collect_image(image, tools, store):
             return record, [], "failed", f"Syft timed out after {tools.timeout_seconds} s", tool
         if result.returncode or not output.is_file():
             return record, [], "failed", f"Syft exited with {result.returncode}: {result.stderr[:400]}", tool
-        raw = output.read_bytes()
         document = read_json(output, MAX_SYFT_OUTPUT)
+        raw = output.read_bytes()
         evidence = store.add_json("scanner-output", f"image:{image.id}", document, f"image-{image.id}.syft.json", original_bytes=raw, adapter=f"syft {version}")
     parsed = parse_syft(document, image, evidence)
     tool["output_schema"] = parsed["schema_version"]

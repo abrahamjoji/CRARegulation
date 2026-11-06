@@ -147,6 +147,32 @@ class CMake(Base):
         self.assertEqual(row["status"], "failed")
         self.assertEqual(row["code"], "cmake_reply_invalid")
 
+    def test_reply_symlink_out_of_the_tree_refused(self):
+        reply = self.ws.root / "app/build-release-static/build/Release/.cmake/api/v1/reply"
+        codemodel = next(reply.glob("codemodel-*.json"))
+        codemodel.unlink()
+        codemodel.symlink_to("/etc/hostname")
+        row = self.status(self.ws.collect()[0], "cmake", "release-static")
+        self.assertEqual(row["code"], "cmake_reply_invalid")
+
+    def test_compile_flag_secrets_are_redacted_from_retained_evidence(self):
+        reply = self.ws.root / "app/build-release-static/build/Release/.cmake/api/v1/reply"
+        target = next(reply.glob("target-gateway-*.json"))
+        data = json.loads(target.read_text())
+        data["compileGroups"][0]["defines"] = [{"define": "API_TOKEN=s3cretdefine"}]
+        data["compileGroups"][0]["compileCommandFragments"] = [{"fragment": "-DDEPLOY_PASSWORD=s3cretflag"}]
+        target.write_text(json.dumps(data))
+        _, destination = self.ws.collect()
+        text = (destination / "evidence" / "cmake-release-static.reply.json").read_text()
+        self.assertNotIn("s3cretdefine", text)
+        self.assertNotIn("s3cretflag", text)
+
+    def test_oversized_graph_is_refused_before_loading(self):
+        path = self.ws.root / "release-static.graph.json"
+        path.write_text(" " * (65 * 1024 * 1024))
+        row = self.status(self.ws.collect()[0], "conan", "release-static")
+        self.assertEqual((row["status"], row["code"]), ("failed", "file_too_large"))
+
     def test_unknown_configuration_reported(self):
         self.ws.edit_config('cmake_config = "Release"', 'cmake_config = "RelWithDebInfo"')
         row = self.status(self.ws.collect()[0], "cmake", "release-static")

@@ -13,7 +13,8 @@ WORKDIR /workspace
 
 FROM base AS collector
 COPY src/cra /opt/cra/cra
-RUN rm -rf /opt/cra/cra/engine /opt/cra/cra/hosted && printf '#!/bin/sh\nexec python -I -c "import sys; sys.path.insert(0, \"/opt/cra\"); from cra.cli import entrypoint; entrypoint()" "$@"\n' > /usr/local/bin/cra && chmod 0755 /usr/local/bin/cra
+COPY deploy/cra-wrapper.sh /usr/local/bin/cra
+RUN rm -rf /opt/cra/cra/engine /opt/cra/cra/hosted && chmod 0755 /usr/local/bin/cra
 USER 10001
 ENTRYPOINT ["cra"]
 
@@ -21,6 +22,7 @@ FROM base AS local
 ADD --checksum=sha256:9c8965ced9df657e5e851c14021bae838802f711edd7a48f9bc3c923a8d28f12 https://github.com/anchore/grype/releases/download/v0.121.2/grype_0.121.2_linux_amd64.tar.gz /tmp/grype.tar.gz
 RUN tar -xzf /tmp/grype.tar.gz -C /usr/local/bin grype && rm /tmp/grype.tar.gz
 COPY src/cra /opt/cra/cra
-RUN printf '#!/bin/sh\nexec python -I -c "import sys; sys.path.insert(0, \"/opt/cra\"); from cra.cli import entrypoint; entrypoint()" "$@"\n' > /usr/local/bin/cra && chmod 0755 /usr/local/bin/cra
+COPY deploy/cra-wrapper.sh /usr/local/bin/cra
+RUN chmod 0755 /usr/local/bin/cra
 USER 10001
 ENTRYPOINT ["cra"]
