@@ -2,7 +2,18 @@
 
 Collects and checks the engineering evidence the EU Cyber Resilience Act (Regulation (EU) 2024/2847) asks of a product manufacturer, using open-source tools in CI on every build.
 
-The repository ships with demo data for the **RC-200 robot arm controller** by **Nordwerk Robotics GmbH**. Both are fictional, and so are the demo's triage decisions and risk assessment. The vulnerabilities in the sample data are real public CVEs for the listed component versions. To use your own product, see [Set up a real product](#set-up-a-real-product).
+The repository ships with demo data for the **DEMO-200 robot arm controller** by **Example Robotics GmbH**. Both are fictional, and so are the demo's triage decisions and risk assessment. The vulnerabilities in the sample data are real public CVEs for the listed component versions. To use your own product, see [Set up a real product](#set-up-a-real-product).
+
+## Demo and live scans
+
+The workflow runs two jobs, and they answer different questions.
+
+| Job | Data | Result |
+| --- | --- | --- |
+| `demo` | A small, hand-picked sample of real CVEs, fixed to 5 November 2026 | Repeatable report for showing how the pipeline works. It does not show how many findings a real scan produces |
+| `cra` | Live vulnerability data for the components declared in `firmware/` and `sbom/` | What a real scan finds. Most findings are not triaged |
+
+The demo's triage only covers the sample, so its live scan fails the gate. While `ENFORCE_LIVE_GATE` is `"false"` the failure appears as a warning, with the gate's output in the run summary. **A real product must set it to `"true"`**, so the failure stops the build. A published release always enforces the release gate.
 
 Paragraph numbers below refer to the Commission guidance on the CRA, C(2026) 5252 annex, which is non-binding.
 
@@ -61,7 +72,13 @@ Only a file's existence is checked, not its content, so someone still has to rev
 - Impacted users informed for anything reportable (Article 14(8)).
 - No `met` item without evidence.
 
-The demo deliberately fails `--release-gate`. Its investigation of CVE-2022-0847 also passes the 14-day limit after 19 November 2026, so a live run of the demo fails `--gate` from then on. Use `--date 2026-11-05` to reproduce the sample report.
+The demo deliberately fails `--release-gate`. Its investigation of CVE-2022-0847 would pass the 14-day limit after 19 November 2026, so sample runs use `--date 2026-11-05` to stay repeatable.
+
+## Large scans
+
+A real scan can produce thousands of findings, especially for a Linux kernel declared by version alone. The report lists findings by component and shows the 200 highest-priority ones, with known-exploited findings first. `cra-summary.json` keeps every finding.
+
+Reducing the number takes real product data: the exact kernel version and patch level, and recorded decisions for code the product does not build. A report limit does not remove any finding, and the gate still counts them all.
 
 ## Article 14 reporting
 
@@ -85,7 +102,7 @@ python scripts/cra_report.py \
   --sbom sample-data/sbom.syft.cdx.json \
   --manual sbom/manual-components.cdx.json \
   --scan sample-data/scan.grype.json \
-  --vex vex/rc200.openvex.json \
+  --vex vex/demo200.openvex.json \
   --kev sample-data/kev.json \
   --risk risk/risk-assessment.json \
   --register vuln/register.json \
@@ -107,14 +124,14 @@ Push this repository to GitHub. The workflow in `.github/workflows/cra-pipeline.
 2. Do the risk assessment first. It decides which Part I requirements apply (para 33), and cost or risk appetite cannot justify leaving a risk unaddressed (paras 158, 163).
 3. Decide whether your product has remote data processing, such as a cloud service it needs for one of its functions (section 8).
 4. Fill in `product.json`, including `classification_rationale`, `market` and the support period. Link evidence files through `evidence_refs`, with paths relative to `product.json`.
-5. Set the paths at the top of `.github/workflows/cra-pipeline.yml`.
+5. At the top of `.github/workflows/cra-pipeline.yml`, set the paths and change `ENFORCE_LIVE_GATE` to `"true"`. Set `demo` to `false` in `product.json` if you started from the demo file.
 6. Replace step 1 with an SBOM from your real firmware, using the options below.
 
 - **Yocto:** replace step 1 with the SBOM from `create-spdx`, converted to CycloneDX. Extract the image's `.spdx.tar.zst` first, then run `python scripts/spdx_to_cdx.py <extracted dir> --name <image> -o out/sbom.cdx.json`. SPDX 3 is not supported, so on releases that default to it use `INHERIT += "create-spdx-2.2"`.
 - **Zephyr:** replace step 1 with `west spdx`, then run `python scripts/spdx_to_cdx.py <build dir>/spdx --name <app> -o out/sbom.cdx.json`.
 - **After converting:** read the converter's warnings. A component with no version cannot be matched to CVEs. The workflow runs Grype with `--add-cpes-if-none` so that components with no CPE are still checked; generated CPEs can add false matches, which you record in VEX.
 - **Containers or root filesystems:** `syft scan <image or dir>`.
-- Pin the Syft and Grype versions in the install step for reproducible builds.
+- Syft and Grype versions and checksums are pinned at the top of the workflow. Update them together, using each release's checksums file.
 - Edit `product.json` with the product's Annex I self-assessment and `vex/*.openvex.json` with triage decisions.
 
 ## Keeping the evidence
@@ -132,7 +149,7 @@ vuln/register.json               vulnerability and incident register (demo)
 templates/                       blank files for a real product
 firmware/conanfile.txt           example dependencies the scanner finds
 sbom/manual-components.cdx.json  components the scanner cannot see
-vex/rc200.openvex.json           triage decisions with justifications
+vex/demo200.openvex.json           triage decisions with justifications
 sample-data/                     offline SBOM, scan and KEV subset for the demo
 scripts/cra_report.py            report generator
 scripts/cra_checks.py            score, evidence, register and gate rules

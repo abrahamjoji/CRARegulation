@@ -1,7 +1,7 @@
 {
   "version": "1",
   "date": "2026-11-05",
-  "assessor": "Nordwerk product security (fictional)",
+  "assessor": "Example product security (fictional)",
   "intended_purpose": "Controls an industrial robot arm in a factory cell.",
   "foreseeable_use": "Connected to a plant network; serviced on site through the CAN diagnostic port.",
   "environment": "Factory floor with restricted physical access; operated by trained staff.",
