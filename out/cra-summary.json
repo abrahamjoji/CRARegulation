@@ -1,0 +1,73 @@
+{
+  "generated": "2026-11-05",
+  "score": 59,
+  "checklist_pct": 55,
+  "triage_pct": 67,
+  "open": 4,
+  "untriaged": 2,
+  "days_left": 401,
+  "counts": {
+    "met": 7,
+    "partial": 9,
+    "missing": 5
+  },
+  "kev_loaded": true,
+  "product": {
+    "product": "RC-200 robot arm controller",
+    "firmware_version": "2.4.1",
+    "build_id": "ci-2026-11-05.17"
+  },
+  "reporting_checks": [
+    "CVE-2022-0847"
+  ],
+  "findings": [
+    {
+      "id": "CVE-2022-0847",
+      "component": "linux-kernel",
+      "version": "5.15.0",
+      "severity": "high",
+      "status": "under_investigation",
+      "kev": true
+    },
+    {
+      "id": "CVE-2022-37434",
+      "component": "zlib",
+      "version": "1.2.11",
+      "severity": "critical",
+      "status": "needs_triage",
+      "kev": false
+    },
+    {
+      "id": "CVE-2018-25032",
+      "component": "zlib",
+      "version": "1.2.11",
+      "severity": "high",
+      "status": "needs_triage",
+      "kev": false
+    },
+    {
+      "id": "CVE-2022-0778",
+      "component": "openssl",
+      "version": "3.0.1",
+      "severity": "high",
+      "status": "affected",
+      "kev": false
+    },
+    {
+      "id": "CVE-2022-25235",
+      "component": "expat",
+      "version": "2.4.1",
+      "severity": "critical",
+      "status": "not_affected",
+      "kev": false
+    },
+    {
+      "id": "CVE-2022-32221",
+      "component": "libcurl",
+      "version": "7.83.0",
+      "severity": "critical",
+      "status": "not_affected",
+      "kev": false
+    }
+  ]
+}

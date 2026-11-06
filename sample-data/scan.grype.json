@@ -1,0 +1,182 @@
+{
+  "matches": [
+    {
+      "vulnerability": {
+        "id": "CVE-2022-0847",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2022-0847",
+        "namespace": "nvd:cpe",
+        "severity": "High",
+        "description": "Pipe buffer flags are not initialised correctly, so a local unprivileged user can overwrite data in read-only files and gain root (\"Dirty Pipe\").",
+        "cvss": [
+          {
+            "version": "3.1",
+            "metrics": {
+              "baseScore": 7.8
+            }
+          }
+        ],
+        "fix": {
+          "versions": [
+            "5.15.25"
+          ],
+          "state": "fixed"
+        }
+      },
+      "artifact": {
+        "name": "linux-kernel",
+        "version": "5.15.0",
+        "type": "binary",
+        "purl": "pkg:generic/linux-kernel@5.15.0"
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2022-37434",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2022-37434",
+        "namespace": "nvd:cpe",
+        "severity": "Critical",
+        "description": "Heap buffer overflow in inflate when an application reads a gzip header with a large extra field.",
+        "cvss": [
+          {
+            "version": "3.1",
+            "metrics": {
+              "baseScore": 9.8
+            }
+          }
+        ],
+        "fix": {
+          "versions": [
+            "1.2.13"
+          ],
+          "state": "fixed"
+        }
+      },
+      "artifact": {
+        "name": "zlib",
+        "version": "1.2.11",
+        "type": "conan",
+        "purl": "pkg:conan/zlib@1.2.11"
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2022-25235",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2022-25235",
+        "namespace": "nvd:cpe",
+        "severity": "Critical",
+        "description": "Missing validation of multi-byte UTF-8 sequences can lead to arbitrary code execution while parsing XML.",
+        "cvss": [
+          {
+            "version": "3.1",
+            "metrics": {
+              "baseScore": 9.8
+            }
+          }
+        ],
+        "fix": {
+          "versions": [
+            "2.4.5"
+          ],
+          "state": "fixed"
+        }
+      },
+      "artifact": {
+        "name": "expat",
+        "version": "2.4.1",
+        "type": "conan",
+        "purl": "pkg:conan/expat@2.4.1"
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2022-32221",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2022-32221",
+        "namespace": "nvd:cpe",
+        "severity": "Critical",
+        "description": "Reusing a handle for a PUT and then a POST can send wrong data or read freed memory.",
+        "cvss": [
+          {
+            "version": "3.1",
+            "metrics": {
+              "baseScore": 9.8
+            }
+          }
+        ],
+        "fix": {
+          "versions": [
+            "7.86.0"
+          ],
+          "state": "fixed"
+        }
+      },
+      "artifact": {
+        "name": "libcurl",
+        "version": "7.83.0",
+        "type": "conan",
+        "purl": "pkg:conan/libcurl@7.83.0"
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2022-0778",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2022-0778",
+        "namespace": "nvd:cpe",
+        "severity": "High",
+        "description": "BN_mod_sqrt() can loop forever on a crafted certificate, causing denial of service.",
+        "cvss": [
+          {
+            "version": "3.1",
+            "metrics": {
+              "baseScore": 7.5
+            }
+          }
+        ],
+        "fix": {
+          "versions": [
+            "3.0.2"
+          ],
+          "state": "fixed"
+        }
+      },
+      "artifact": {
+        "name": "openssl",
+        "version": "3.0.1",
+        "type": "conan",
+        "purl": "pkg:conan/openssl@3.0.1"
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2018-25032",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2018-25032",
+        "namespace": "nvd:cpe",
+        "severity": "High",
+        "description": "Memory corruption when compressing input that has many distant matches.",
+        "cvss": [
+          {
+            "version": "3.1",
+            "metrics": {
+              "baseScore": 7.5
+            }
+          }
+        ],
+        "fix": {
+          "versions": [
+            "1.2.12"
+          ],
+          "state": "fixed"
+        }
+      },
+      "artifact": {
+        "name": "zlib",
+        "version": "1.2.11",
+        "type": "conan",
+        "purl": "pkg:conan/zlib@1.2.11"
+      }
+    }
+  ],
+  "descriptor": {
+    "name": "grype",
+    "version": "sample"
+  }
+}

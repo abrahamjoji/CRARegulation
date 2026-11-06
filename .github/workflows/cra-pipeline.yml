@@ -1,0 +1,111 @@
+name: CRA pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Optional: set these repository secrets to upload every SBOM to OWASP Dependency-Track
+  DT_URL: ${{ secrets.DT_URL }}
+  DT_API_KEY: ${{ secrets.DT_API_KEY }}
+
+jobs:
+  cra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test the pipeline scripts
+        run: python -m unittest discover tests
+
+      - name: Install Syft and Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          syft version && grype version
+
+      - name: 1. Generate SBOM from the firmware sources
+        run: |
+          mkdir -p out
+          syft scan dir:firmware -o cyclonedx-json=out/sbom.cdx.json
+
+      - name: 2. Add manual components (kernel from BSP, vendor SDK)
+        run: python scripts/merge_sbom.py out/sbom.cdx.json sbom/manual-components.cdx.json -o out/sbom.full.cdx.json
+
+      - name: 3. Match components against known vulnerabilities
+        run: grype sbom:out/sbom.full.cdx.json --add-cpes-if-none -o json > out/scan.grype.json
+
+      - name: 4. Fetch the CISA Known Exploited Vulnerabilities catalogue
+        run: |
+          curl -sSfL --retry 3 https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json -o out/kev.json
+
+      - name: 5. Build CRA readiness report (gate on untriaged known-exploited CVEs)
+        run: |
+          python scripts/cra_report.py \
+            --product product.json \
+            --sbom out/sbom.full.cdx.json \
+            --scan out/scan.grype.json \
+            --vex vex/rc200.openvex.json \
+            --kev out/kev.json \
+            --out out/cra-report.html \
+            --summary out/cra-summary.json \
+            --gate
+
+      - name: 6. Upload SBOM to Dependency-Track for continuous monitoring
+        if: ${{ env.DT_URL != '' }}
+        run: |
+          curl -sSf -X POST "$DT_URL/api/v1/bom" \
+            -H "X-Api-Key: $DT_API_KEY" \
+            -F "autoCreate=true" \
+            -F "projectName=RC-200" \
+            -F "projectVersion=${GITHUB_REF_NAME}" \
+            -F "bom=@out/sbom.full.cdx.json"
+
+      - name: 7. Archive evidence for the technical file
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cra-evidence-${{ github.sha }}
+          path: |
+            out/sbom.full.cdx.json
+            out/scan.grype.json
+            out/cra-report.html
+            out/cra-summary.json
+            vex/rc200.openvex.json
+          retention-days: 90
+
+  # CI artifacts expire, so each release keeps its evidence as a release asset.
+  # Separate job: only this one gets write access, and it runs no third-party install scripts.
+  archive-release-evidence:
+    needs: cra
+    if: ${{ !cancelled() && github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: cra-evidence-${{ github.sha }}
+          path: evidence
+
+      - name: Attach evidence and checksums to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          (cd evidence && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          tar -czf "cra-evidence-$TAG.tar.gz" -C evidence .
+          sha256sum "cra-evidence-$TAG.tar.gz" > "cra-evidence-$TAG.tar.gz.sha256"
+          # No --clobber: evidence for a published release must not be overwritten by a re-run
+          gh release upload "$TAG" "cra-evidence-$TAG.tar.gz" "cra-evidence-$TAG.tar.gz.sha256" --repo "$GITHUB_REPOSITORY"

@@ -1,0 +1,35 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://nordwerk.example/vex/rc200-2.4.1",
+  "author": "Nordwerk Robotics product security (fictional)",
+  "timestamp": "2026-11-05T09:00:00Z",
+  "version": 3,
+  "statements": [
+    {
+      "vulnerability": {"name": "CVE-2022-25235"},
+      "products": [{"@id": "pkg:conan/expat@2.4.1"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "Expat only parses signed configuration files from the update bundle; no untrusted XML reaches the parser."
+    },
+    {
+      "vulnerability": {"name": "CVE-2022-32221"},
+      "products": [{"@id": "pkg:conan/libcurl@7.83.0"}],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Firmware never reuses a curl handle for PUT followed by POST."
+    },
+    {
+      "vulnerability": {"name": "CVE-2022-0778"},
+      "products": [{"@id": "pkg:conan/openssl@3.0.1"}],
+      "status": "affected",
+      "action_statement": "Update OpenSSL to the current 3.0.x release in firmware 2.4.2 (planned 2026-11-20)."
+    },
+    {
+      "vulnerability": {"name": "CVE-2022-0847"},
+      "products": [{"@id": "pkg:generic/linux-kernel@5.15.0"}],
+      "status": "under_investigation",
+      "impact_statement": "Known exploited in the wild. Checking whether any local user or process on the controller can reach it."
+    }
+  ]
+}
