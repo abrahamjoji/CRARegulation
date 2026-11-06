@@ -139,6 +139,7 @@ Push this repository to GitHub. Pushes, pull requests and a six-hour schedule ru
 - **After converting:** read the converter's warnings. A component with no version cannot be matched to CVEs. The workflow runs Grype with `--add-cpes-if-none` so that components with no CPE are still checked; generated CPEs can add false matches, which you record in VEX.
 - **Containers or root filesystems:** `syft scan <image or dir>`.
 - Keep the pinned Syft and Grype versions and SHA-256 digests in the install step reviewed together. Dependabot proposes updates to action commit pins.
+- The workflow explicitly generates `cyclonedx-json@1.5` to match the manual SBOM. When changing schema versions, update every input together; the merger rejects mismatches. See [Syft format versions](https://oss.anchore.com/docs/guides/sbom/formats/#format-versions).
 - Edit `product.json` with the product's Annex I self-assessment and `vex/*.openvex.json` with triage decisions.
 
 ## Keeping the evidence

@@ -542,6 +542,16 @@ class Presentation(TempDirTest):
 
 
 class Workflow(unittest.TestCase):
+    def test_syft_output_version_matches_manual_sbom(self):
+        import re
+        workflow = (ROOT / ".github/workflows/cra-pipeline.yml").read_text(encoding="utf-8")
+        generation = next(line.strip() for line in workflow.splitlines() if "run: syft scan" in line)
+        output = re.search(r"-o cyclonedx-json@([0-9]+\.[0-9]+)=out/sbom\.cdx\.json", generation)
+        self.assertIsNotNone(output, "Syft output schema must be explicit, not the moving default")
+        manual = json.loads((ROOT / "sbom/manual-components.cdx.json").read_text(encoding="utf-8"))
+        self.assertEqual(output.group(1), manual["specVersion"])
+
+
     def test_tools_are_pinned(self):
         text = (ROOT / ".github/workflows/cra-pipeline.yml").read_text(encoding="utf-8")
         self.assertNotIn("/main/install.sh", text)

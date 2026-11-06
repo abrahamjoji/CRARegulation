@@ -100,8 +100,9 @@ jobs:
           "$RUNNER_TEMP/cra-tools/syft" version > out/syft-version.txt
           "$RUNNER_TEMP/cra-tools/grype" version > out/grype-version.txt
 
+      # Match the manual SBOM schema; Syft's unversioned output follows its latest schema.
       - name: Generate SBOM from the firmware sources
-        run: syft scan "dir:$FIRMWARE_DIR" -o cyclonedx-json=out/sbom.cdx.json
+        run: syft scan "dir:$FIRMWARE_DIR" -o cyclonedx-json@1.5=out/sbom.cdx.json
 
       - name: Add manual components
         run: python scripts/merge_sbom.py out/sbom.cdx.json "$MANUAL_SBOM" -o out/sbom.full.cdx.json

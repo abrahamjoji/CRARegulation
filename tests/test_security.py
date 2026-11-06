@@ -72,6 +72,12 @@ class SbomIntegrity(unittest.TestCase):
         self.assertIn("cpe", result["components"][0])
         self.assertEqual(result["dependencies"], [{"ref": "lib-a", "dependsOn": ["dep"]}])
 
+    def test_mismatched_schema_versions_fail_with_both_versions(self):
+        newer = copy.deepcopy(self.base)
+        newer["specVersion"] = "1.6"
+        with self.assertRaisesRegex(ValueError, "first input uses '1.6'.*another input uses '1.5'"):
+            merge([newer, self.base])
+
     def test_conflicting_identity_is_rejected(self):
         other = copy.deepcopy(self.base)
         other["components"][0]["version"] = "different"

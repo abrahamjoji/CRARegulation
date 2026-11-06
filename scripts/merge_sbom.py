@@ -21,7 +21,11 @@ def merge(boms):
         if not isinstance(bom, dict) or bom.get("bomFormat") != "CycloneDX":
             raise ValueError("every input must be a CycloneDX object")
         if bom.get("specVersion") != merged.get("specVersion"):
-            raise ValueError("SBOM specVersion mismatch; convert to one version first")
+            raise ValueError(
+                f"SBOM specVersion mismatch: first input uses {merged.get('specVersion')!r}, "
+                f"another input uses {bom.get('specVersion')!r}; "
+                "regenerate the inputs with the same CycloneDX version"
+            )
         if any(bom.get(field) for field in ("services", "vulnerabilities", "compositions")):
             raise ValueError("services/vulnerabilities/compositions require a full CycloneDX merger")
         components = bom.get("components")
