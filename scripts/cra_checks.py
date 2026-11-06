@@ -214,6 +214,21 @@ def duties(product, today):
     return {"reporting": reporting, "annex_i": annex}
 
 
+def component_summary(findings):
+    """Findings per component, worst first, so large scans stay readable."""
+    rows = {}
+    for f in findings:
+        row = rows.setdefault((f["component"], f["version"]), {
+            "component": f["component"], "version": f["version"], "total": 0, "kev": 0,
+            "untriaged": 0, "critical": 0, "high": 0})
+        row["total"] += 1
+        row["kev"] += bool(f["kev"])
+        row["untriaged"] += f["status"] == "needs_triage"
+        row["critical"] += f["severity"] == "critical"
+        row["high"] += f["severity"] == "high"
+    return sorted(rows.values(), key=lambda r: (-r["kev"], -r["total"], str(r["component"])))
+
+
 def sbom_report(components):
     no_version = [c["name"] for c in components if c["version"] in ("", "?", None, "UNKNOWN")]
     no_supplier = [c["name"] for c in components if not c["supplier"]]

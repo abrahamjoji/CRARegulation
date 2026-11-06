@@ -1,7 +1,7 @@
 {
   "@context": "https://openvex.dev/ns/v0.2.0",
-  "@id": "https://nordwerk.example/vex/rc200-2.4.1",
-  "author": "Nordwerk Robotics product security (fictional)",
+  "@id": "https://example.com/vex/demo200-2.4.1",
+  "author": "Example Robotics product security (fictional)",
   "timestamp": "2026-11-05T09:00:00Z",
   "version": 3,
   "statements": [
