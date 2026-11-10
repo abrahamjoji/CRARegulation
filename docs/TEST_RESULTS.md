@@ -14,7 +14,26 @@ The merge of `main` (#3) had replaced the `scripts/cra_checks.py` and `scripts/c
 | README sample report (`scripts/cra_report.py ... --gate`) | Gate passed, exit 0 |
 | Manual: Python `pip inspect` project, directory scan, hosted server and worker | Gate 10 on real advisories; missing directory or symlink 20; hosted result equal to local; bad token 31; server down 32, then gate 20 |
 
-Still not verified here: Docker images and Compose, the GitHub Action and workflows, keyless cosign.
+Still not verified here: the GitHub Action and workflows on GitHub, keyless cosign.
+
+## Docker and Compose, 10 November 2026
+
+Docker 28.5.2 and Compose 2.40.3 on the same host. First run of the images and the development stack.
+
+| Check | Result |
+| --- | --- |
+| Build `Dockerfile.server`, `Dockerfile.collector` (`collector`, `local`) | Built; Syft 1.57.0 and Grype 0.121.2 downloads passed their pinned checksums. All images run as uid 10001 |
+| `collector` image contents | No `engine`, `hosted` or Grype. A local `analyze` exits 32 with `engine_not_included` |
+| `docker compose up` (db-update, api, worker) | Database update completed; API and worker started |
+| Python project: Compose service vs `cra-local` image | 23 findings each, identical finding ids and database build; gate 10 |
+| Reference C++ build collected in the `collector` image, analyzed on Compose vs `cra-local` | 61 observations; 158 findings each, identical ids; gate 10 |
+| Bad token / API stopped / API restarted | 31 / 32 then gate 20 / same job returned for the same upload |
+| Worker isolation | No egress (IP and DNS both fail); read-only root and database mount; no capabilities. API published on 127.0.0.1 only |
+| The shared action's `docker run` flags (`--network none`, host uid) | Directory scan with Syft and Python collection both complete |
+| `reference/image/Dockerfile` | Did not build as committed. Fixed: `make` for Conan's dependency builds, `-DCMAKE_BUILD_TYPE=Release`, and the image's GCC 12 recorded instead of the host's 16. Built and ran |
+| `docker save` archives of that image, `format = "docker-archive"` | 279 components, 1079 findings: 209 shipped (final image), 870 build-only (builder image); gate 10. A missing archive reported incomplete |
+
+Observations: the images write as uid 10001, so a mounted workspace must be writable by that user, or the container must run with `--user` as the shared action does. The `local` image then cannot read the database volume, which is private to uid 10001. Image scans see Debian packages, not the statically linked Conan zlib inside the binary; that comes from the Conan and CMake evidence.
 
 ## Cross-language audit verification
 
@@ -34,7 +53,7 @@ The 53 skips comprise 14 opt-in integration tests and 39 hosted tests. This exec
 
 The three real-tool checks create an isolated Python environment and capture real pip inspect JSON, scan a Python requirements directory with Syft 1.57.0, and compile/inspect actual C and C++ ELF binaries without Conan. The native artifact-only case correctly remains incomplete when package versions cannot be identified. No dependency installations from the network are required for these three checks.
 
-The previous results below are historical records from the initial implementation, not substitutes for the current environmental limits. Docker builds, external hosted CI and customer software remain unverified here.
+The previous results below are historical records from the initial implementation, not substitutes for the current environmental limits. External hosted CI and customer software remain unverified here; Docker is covered in the section above.
 
 ## Summary
 
