@@ -102,7 +102,9 @@ class Exits(unittest.TestCase):
         with tempfile.TemporaryDirectory() as work:
             package = Path(work) / "cra"
             shutil.copytree(helpers.REPO / "src" / "cra", package, ignore=shutil.ignore_patterns("engine", "hosted", "__pycache__"))
-            environment = {"PYTHONPATH": work, "PATH": "/usr/bin:/bin"}
+            # The fake scanners start with `#!/usr/bin/env python3`; keep this interpreter's folder on PATH,
+            # because official Python images and pyenv have no python3 in /usr/bin.
+            environment = {"PYTHONPATH": work, "PATH": f"{Path(sys.executable).parent}:/usr/bin:/bin"}
             self.ws.analyze()
             command = [sys.executable, "-I", "-c", f"import sys; sys.path.insert(0, {work!r}); from cra.cli import entrypoint; sys.argv = sys.argv[0:1] + sys.argv[1:]; entrypoint()"]
             result = subprocess.run(command + ["collect", "--config", self.config], capture_output=True, text=True, env=environment)

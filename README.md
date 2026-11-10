@@ -36,7 +36,7 @@ The `cra` command, the pinned tools and the container images run on **Linux only
 | Where `cra` runs | Status |
 | --- | --- |
 | Linux, x86-64 (amd64) | Supported and tested: CLI, real-tool integration tests, container images and Compose |
-| Linux, ARM64 (aarch64) | Supported. The installer and Dockerfiles select ARM64 builds of Syft, Grype and cosign; downloads, digests and binaries are verified. Not yet run on ARM64 hardware |
+| Linux, ARM64 (aarch64) | Supported and tested under QEMU emulation: installer, routine tests, container images and Compose, with results identical to x86-64. Not yet run on physical ARM64 hardware |
 | Other Linux CPUs (32-bit ARM, ppc64le, s390x, RISC-V) | Not supported. The installer stops with exit 30 |
 | Windows | Not supported natively: the CLI depends on Unix-only facilities and cannot start. Products that ship on Linux can be collected from Windows with the collector image under Docker Desktop or WSL2. Windows executables and DLLs are not inspected |
 | macOS | Not supported natively and not tested; the installer stops with exit 30. Use the collector image. Mach-O binaries are not inspected |

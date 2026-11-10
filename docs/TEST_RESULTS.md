@@ -37,7 +37,7 @@ Observations: the images write as uid 10001, so a mounted workspace must be writ
 
 ## Linux ARM64 support, 10 November 2026
 
-Run on the same x86-64 host. No ARM64 hardware or CPU emulation was available, so nothing was executed as ARM64.
+Run on the same x86-64 host. The first checks below ran without emulation. The ARM64 rows ran as real ARM64 code under QEMU user-mode emulation (Kali `qemu-user-binfmt` 11.1.2), inside ARM64 containers where `uname -m` reports `aarch64`.
 
 | Check | Result |
 | --- | --- |
@@ -51,8 +51,17 @@ Run on the same x86-64 host. No ARM64 hardware or CPU emulation was available, s
 | `requirements/hosted.lock` | Universal lock: includes the ARM64 manylinux wheel hash for `pydantic-core`; other packages are pure Python |
 | ELF inspection of the ARM64 cosign binary on x86-64 | Parsed: machine 183 (AArch64) |
 | `tests/test_tool_pins.py` | Installer and Dockerfile pins agree for both architectures; a changed digest fails the test |
+| ARM64: `scripts/install_tools.sh` in `python:3.12-slim-bookworm` | Selects arm64; Syft 1.57.0, Grype 0.121.2 and cosign 3.1.4 run; Syft finds `requests@2.25.0` |
+| ARM64: `pip install --require-hashes -r requirements/dev.lock` | Installed, including the compiled `pydantic-core` wheel |
+| ARM64: `python -m unittest discover tests` | 305 ran: 291 passed, 14 skipped (opt-in integration), in 581 s |
+| ARM64: collector, local and server images | Built as `linux/arm64`, run as uid 10001; collector still has no engine |
+| ARM64: Compose stack, Python project from the ARM64 collector | API and worker report `aarch64`; 23 findings, gate 10 |
+| ARM64 vs x86-64 `cra-local`, same collection and database | 23 findings each, identical ids |
+| ARM64: reference C++ build collected and analyzed on ARM64 | 61 observations; 158 findings with ids identical to the x86-64 run; gate 10 |
 
-Not verified: running `cra`, the tools or the images on ARM64. GitHub's ARM64 runners are not used, because this repository is private and they would be a paid resource.
+The first ARM64 test run had one failure, also present on x86-64 in the same image: `test_collector_only_distribution_runs_without_engine` set `PATH=/usr/bin:/bin`, and official Python images have no `python3` there for the fake scanners. The test now keeps the interpreter's folder on `PATH`.
+
+Not verified: physical ARM64 hardware, so performance there is unmeasured, and the real-tool integration tests on ARM64. GitHub's ARM64 runners are not used, because this repository is private and they would be a paid resource.
 
 ## Cross-language audit verification
 

@@ -58,7 +58,7 @@ See [PROJECT_AUDIT.md](PROJECT_AUDIT.md) for the cross-language review, correcti
 | Collector without engine | Tested | Real `collector` image: no `engine`, `hosted` or Grype; local analyze exits 32 with `engine_not_included` |
 | Collector and server images | Tested | Docker 28.5.2. Built with checksum-pinned Syft and Grype; non-root uid 10001; collector, local and server images run |
 | Docker Compose | Tested | Compose 2.40.3. Results equal `cra-local`; worker has no egress; read-only root, no capabilities; API on loopback only |
-| Linux ARM64 (aarch64) | Partly verified | Installer and Dockerfiles select pinned ARM64 tools; digests, ELF machine type and image tool stages verified on x86-64. Not run on ARM64 hardware or emulation |
+| Linux ARM64 (aarch64) | Tested (emulated) | Under QEMU: installer, routine tests, images and Compose; findings identical to x86-64. Not run on physical ARM64 hardware |
 | Windows and macOS hosts | Unsupported | CLI is Linux-only; collector image under Docker Desktop or WSL2 untested |
 | GitHub Action and workflows | Unverified | Passes `actionlint` 1.7.12. Never run on GitHub |
 | Hosted API | Tested | Real uvicorn over loopback |

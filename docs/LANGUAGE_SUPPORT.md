@@ -16,7 +16,7 @@ The tool scans dependencies and selected artifacts. It is not a source-code vuln
 
 Two questions decide whether a project is covered: where `cra` runs, and what the product is built for.
 
-**Where `cra` runs.** Linux on x86-64 or ARM64, directly or in the collector image. `scripts/install_tools.sh` and the Dockerfiles pick the matching pinned Syft, Grype and cosign builds and refuse anything else with exit 30. x86-64 is fully tested. On ARM64, the downloads, digests, binary architecture and image build stages are verified, but `cra` has not yet been run on ARM64 hardware. Windows and macOS cannot run the CLI natively: it relies on Unix-only facilities for process limits and safe file access. On those hosts, run the collector image under Docker Desktop or WSL2.
+**Where `cra` runs.** Linux on x86-64 or ARM64, directly or in the collector image. `scripts/install_tools.sh` and the Dockerfiles pick the matching pinned Syft, Grype and cosign builds and refuse anything else with exit 30. x86-64 is fully tested. ARM64 is tested under QEMU emulation, with results identical to x86-64, but not yet on physical ARM64 hardware. Windows and macOS cannot run the CLI natively: it relies on Unix-only facilities for process limits and safe file access. On those hosts, run the collector image under Docker Desktop or WSL2.
 
 **What the product is built for.**
 
