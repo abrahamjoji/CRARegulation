@@ -1,0 +1,65 @@
+# Reference customer integration. Paths resolve against this file.
+schema_version = "cra.config/1"
+
+[product]
+name = "reference-gateway"
+version = "1.0.0"
+supplier = "Reference project (fictional)"
+
+[scope]
+# Explicit filesystem scope. The Conan cache holds no input the collector reads directly.
+roots = [".", "out"]
+
+[output]
+dir = "out/cra"
+
+[[configurations]]
+id = "release-static"
+conan_graph = "out/release-static.graph.json"
+conan_manifest = "app/conanfile.py"
+cmake_build_dir = "app/build-release-static/build/Release"
+cmake_config = "Release"
+
+[[configurations]]
+id = "debug-shared-lz4"
+conan_graph = "out/debug-shared-lz4.graph.json"
+conan_manifest = "app/conanfile.py"
+cmake_build_dir = "app/build-debug-shared-lz4/build/Debug"
+cmake_config = "Debug"
+
+[[artifacts]]
+id = "gateway-release"
+path = "app/build-release-static/build/Release/gateway"
+configuration = "release-static"
+shipped = true
+
+[[artifacts]]
+id = "gateway-debug"
+path = "app/build-debug-shared-lz4/build/Debug/gateway"
+configuration = "debug-shared-lz4"
+shipped = false
+
+[[images]]
+id = "final"
+role = "final"
+archive = "out/reference-final.oci.tar"
+format = "oci-archive"
+
+[[images]]
+id = "builder"
+role = "build-stage"
+archive = "out/reference-builder.oci.tar"
+format = "oci-archive"
+
+[components]
+records = ["records/vendor-components.json"]
+
+[tools]
+syft = "../.tools/syft"
+grype = "../.tools/grype"
+timeout_seconds = 600
+
+[analysis]
+policy = "policy.toml"
+vex = ["vex/reference.openvex.json"]
+kev = "out/kev.json"

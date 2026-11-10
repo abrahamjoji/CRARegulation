@@ -1,0 +1,49 @@
+# LOCAL DEVELOPMENT ONLY. Plain HTTP on loopback, SQLite and a shared volume.
+# This is not a production deployment. See docs/PRODUCTION.md.
+name: cra-dev
+services:
+  db-update:
+    # The only service that needs vulnerability database network access at start.
+    build: {context: .., dockerfile: deploy/Dockerfile.server}
+    command: ["grype", "db", "update"]
+    environment: {GRYPE_DB_CACHE_DIR: /grype-db}
+    volumes: ["grype-db:/grype-db"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+  api:
+    build: {context: .., dockerfile: deploy/Dockerfile.server}
+    command: ["python", "-m", "uvicorn", "--factory", "cra.hosted.api:create_app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      CRA_SERVER_DATA: /data
+    volumes: ["server-data:/data"]
+    ports: ["127.0.0.1:8000:8000"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+  worker:
+    build: {context: .., dockerfile: deploy/Dockerfile.server}
+    command: ["python", "-m", "cra.hosted.worker"]
+    depends_on:
+      db-update: {condition: service_completed_successfully}
+    environment:
+      CRA_SERVER_DATA: /data
+      CRA_SERVER_KEV: /kev/kev.json
+      GRYPE_DB_CACHE_DIR: /grype-db
+    volumes:
+      - "server-data:/data"
+      - "grype-db:/grype-db:ro"
+      - "./dev-kev:/kev:ro"
+    read_only: true
+    tmpfs: ["/tmp:size=4g"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    mem_limit: 8g
+    pids_limit: 512
+    networks: [no-egress]
+networks:
+  no-egress:
+    internal: true
+volumes:
+  server-data: {}
+  grype-db: {}

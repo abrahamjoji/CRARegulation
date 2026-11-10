@@ -1,0 +1,71 @@
+# Example customer workflow. Replace the image digest and the build steps with your own.
+# Copy .github/actions/cra-collect into your repository, or reference it by commit SHA.
+# Trust boundary: the build runs untrusted pull-request code and holds no credentials.
+# The token only appears in a separate job that runs no repository code, and never on pull requests.
+name: Supply-chain evidence
+on:
+  push: {branches: [main]}
+  pull_request:
+permissions:
+  contents: read
+env:
+  COLLECTOR_IMAGE: registry.example.invalid/cra-collector@sha256:0000000000000000000000000000000000000000000000000000000000000000
+jobs:
+  build-and-collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: {persist-credentials: false}
+      - uses: ./.github/actions/cra-collect
+        with: {image: "${{ env.COLLECTOR_IMAGE }}", command: prepare}
+      - name: Your real build, capturing Conan's graph as it resolves
+        run: |
+          conan install . -pr:h profiles/release -pr:b default --build=missing -of build -f json --out-file conan-graph.json
+          cmake -S . -B build/build/Release -DCMAKE_TOOLCHAIN_FILE=build/build/Release/generators/conan_toolchain.cmake
+          cmake --build build/build/Release
+      - uses: ./.github/actions/cra-collect
+        with: {image: "${{ env.COLLECTOR_IMAGE }}", command: collect}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with: {name: cra-collection, path: .cra/collection, retention-days: 7, if-no-files-found: error}
+
+  # Fresh runner, no checkout: nothing from the repository executes beside the token.
+  analyze-and-gate:
+    needs: build-and-collect
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions: {}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with: {name: cra-collection, path: .cra/collection}
+      - name: Write the minimal hosted configuration
+        run: |
+          cat > cra.toml <<'TOML'
+          schema_version = "cra.config/1"
+          [product]
+          name = "your-product"
+          version = "1.0.0"
+          [scope]
+          roots = ["."]
+          [output]
+          dir = ".cra"
+          [components]
+          records = []
+          [hosted]
+          url = "https://cra.example.invalid"
+          token_env = "CRA_TOKEN"
+          TOML
+      - name: Submit evidence for analysis
+        env:
+          CRA_TOKEN: ${{ secrets.CRA_TOKEN }}
+        run: |
+          status=0
+          docker run --rm -e CRA_TOKEN --user "$(id -u):$(id -g)" -v "$PWD:/workspace" -w /workspace "$COLLECTOR_IMAGE" analyze --hosted --config cra.toml || status=$?
+          # Only an incomplete scan proceeds to the gate. Auth/service failures fail this step.
+          if [ "$status" -ne 0 ] && [ "$status" -ne 20 ]; then exit "$status"; fi
+      - name: Gate on the retrieved result
+        run: docker run --rm --network none --user "$(id -u):$(id -g)" -v "$PWD:/workspace" -w /workspace "$COLLECTOR_IMAGE" gate --result .cra/analysis --mode build --expect-revision "$GITHUB_SHA" --record .cra/gate.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with: {name: cra-result, path: .cra, retention-days: 90}

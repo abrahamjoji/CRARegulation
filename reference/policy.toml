@@ -1,0 +1,20 @@
+schema_version = "cra.policy/1"
+version = "reference-2026.11"
+
+[vex]
+trusted_authors = ["Reference Security Team (fictional)"]
+
+[freshness]
+max_vulnerability_data_age_hours = 168
+max_kev_age_hours = 720
+kev_required = true
+
+[build]
+block_severities = ["critical", "high"]
+block_scope = "shipped_or_unknown"
+minimum_confidence = "medium"
+
+[release]
+block_severities = ["critical", "high", "medium"]
+require_all_triaged = true
+block_conflicts = true

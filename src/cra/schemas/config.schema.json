@@ -1,0 +1,315 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cra.config/1",
+  "title": "cra.toml, as parsed from TOML",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "product",
+    "scope"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "cra.config/1"
+    },
+    "product": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "supplier": {
+          "type": "string"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "type": "string",
+          "description": "A revision, or env:NAME to read one from the environment. Otherwise read from git."
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "roots"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "roots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dir": {
+          "type": "string"
+        }
+      }
+    },
+    "configurations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+          },
+          "conan_graph": {
+            "type": "string"
+          },
+          "conan_manifest": {
+            "type": "string"
+          },
+          "conan_lockfile": {
+            "type": "string"
+          },
+          "cmake_build_dir": {
+            "type": "string"
+          },
+          "cmake_config": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "pip_inspect": {
+            "type": "string"
+          },
+          "pip_inspect_shipped": {
+            "type": "boolean"
+          },
+          "pip_inspect_scope": {
+            "enum": [
+              "runtime",
+              "build_tool",
+              "test"
+            ]
+          }
+        }
+      }
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "role"
+        ],
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "required": [
+              "archive"
+            ]
+          },
+          {
+            "required": [
+              "reference"
+            ]
+          }
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "final",
+              "build-stage"
+            ]
+          },
+          "archive": {
+            "type": "string"
+          },
+          "format": {
+            "enum": [
+              "oci-archive",
+              "docker-archive"
+            ]
+          },
+          "reference": {
+            "type": "string",
+            "pattern": "@sha256:[0-9a-f]{64}$"
+          },
+          "expected_digest": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "path"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "configuration": {
+            "type": "string"
+          },
+          "shipped": {
+            "type": "boolean"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "records": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "syft": {
+          "type": "string"
+        },
+        "grype": {
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "allow_unverified_versions": {
+          "type": "boolean"
+        },
+        "add_generated_cpes": {
+          "type": "boolean"
+        },
+        "env_passthrough": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "type": "string"
+        },
+        "vex": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "kev": {
+          "type": "string"
+        },
+        "product_file": {
+          "type": "string"
+        },
+        "risk_file": {
+          "type": "string"
+        },
+        "register_file": {
+          "type": "string"
+        }
+      }
+    },
+    "hosted": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "token_env": {
+          "type": "string"
+        },
+        "poll_seconds": {
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "type": "integer"
+        }
+      }
+    },
+    "directories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "path"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+          },
+          "path": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "source",
+              "final",
+              "build-stage"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

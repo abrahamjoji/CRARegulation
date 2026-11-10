@@ -1,0 +1,15 @@
+# Copy into a customer project using any language/build system.
+# 'deploy' is the selected staged deployment tree or extracted root filesystem.
+schema_version = "cra.config/1"
+[product]
+name = "deployment"
+version = "1.0.0"
+[scope]
+roots = ["."]
+[output]
+dir = ".cra"
+[[directories]]
+id = "deployment-tree"
+path = "deploy"
+role = "final"
+required = true

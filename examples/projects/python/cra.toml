@@ -1,0 +1,17 @@
+# Copy into the Python customer's project root.
+# Capture from the environment actually being shipped:
+#   python -m pip inspect --local > pip-inspect.json
+schema_version = "cra.config/1"
+[product]
+name = "python-service"
+version = "1.0.0"
+[scope]
+roots = ["."]
+[output]
+dir = ".cra"
+[[configurations]]
+id = "python-runtime"
+pip_inspect = "pip-inspect.json"
+# Set true only when this is the actual deployment environment, not a dev/test venv.
+pip_inspect_shipped = true
+pip_inspect_scope = "runtime"
