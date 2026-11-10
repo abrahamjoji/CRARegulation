@@ -4,11 +4,26 @@
 #   local:     adds the engine and Grype for fully local analysis.
 # A distributed image can be inspected by its recipient, so proprietary analysis must
 # stay out of any image that leaves the service: that is why collector has no engine.
+#
+# Platforms: linux/amd64 and linux/arm64. BuildKit sets TARGETARCH and fetches only
+# that architecture's pinned tools; any other platform fails at the tool stage.
+ARG TARGETARCH
+
+FROM scratch AS syft-amd64
+ADD --checksum=sha256:9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704 https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz /syft.tar.gz
+FROM scratch AS syft-arm64
+ADD --checksum=sha256:410cbfa0ae0f63246bc0057843760b1de2833cd23919e025e368fd7681308cdb https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_arm64.tar.gz /syft.tar.gz
+FROM scratch AS grype-amd64
+ADD --checksum=sha256:9c8965ced9df657e5e851c14021bae838802f711edd7a48f9bc3c923a8d28f12 https://github.com/anchore/grype/releases/download/v0.121.2/grype_0.121.2_linux_amd64.tar.gz /grype.tar.gz
+FROM scratch AS grype-arm64
+ADD --checksum=sha256:d7d2e160255b0f087280feabf6f213cf4c45d475690f3f1fe5dc336eb1037bf0 https://github.com/anchore/grype/releases/download/v0.121.2/grype_0.121.2_linux_arm64.tar.gz /grype.tar.gz
+FROM syft-${TARGETARCH} AS syft
+FROM grype-${TARGETARCH} AS grype
+
 FROM python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 SYFT_CHECK_FOR_APP_UPDATE=false GRYPE_CHECK_FOR_APP_UPDATE=false
 RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin cra
-ADD --checksum=sha256:9c077a7d43029b3b13e98a8db720661e700c4d58db6352153a06395ae4a2a704 https://github.com/anchore/syft/releases/download/v1.57.0/syft_1.57.0_linux_amd64.tar.gz /tmp/syft.tar.gz
-RUN tar -xzf /tmp/syft.tar.gz -C /usr/local/bin syft && rm /tmp/syft.tar.gz
+RUN --mount=type=bind,from=syft,target=/dl tar -xzf /dl/syft.tar.gz -C /usr/local/bin syft
 WORKDIR /workspace
 
 FROM base AS collector
@@ -19,8 +34,7 @@ USER 10001
 ENTRYPOINT ["cra"]
 
 FROM base AS local
-ADD --checksum=sha256:9c8965ced9df657e5e851c14021bae838802f711edd7a48f9bc3c923a8d28f12 https://github.com/anchore/grype/releases/download/v0.121.2/grype_0.121.2_linux_amd64.tar.gz /tmp/grype.tar.gz
-RUN tar -xzf /tmp/grype.tar.gz -C /usr/local/bin grype && rm /tmp/grype.tar.gz
+RUN --mount=type=bind,from=grype,target=/dl tar -xzf /dl/grype.tar.gz -C /usr/local/bin grype
 COPY src/cra /opt/cra/cra
 COPY deploy/cra-wrapper.sh /usr/local/bin/cra
 RUN chmod 0755 /usr/local/bin/cra

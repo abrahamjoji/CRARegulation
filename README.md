@@ -29,9 +29,23 @@ flowchart LR
 | Authentication failure | 31 | Fix the token or signature trust |
 | Operational failure | 32 | A failure in the tool or a service, not a product finding |
 
+## Supported platforms
+
+The `cra` command, the pinned tools and the container images run on **Linux only**, on x86-64 or ARM64. The machine that runs `cra` does not have to match the product: it reads ELF binaries of any CPU architecture, so firmware cross-compiled for ARM can be inspected from an x86-64 build machine.
+
+| Where `cra` runs | Status |
+| --- | --- |
+| Linux, x86-64 (amd64) | Supported and tested: CLI, real-tool integration tests, container images and Compose |
+| Linux, ARM64 (aarch64) | Supported. The installer and Dockerfiles select ARM64 builds of Syft, Grype and cosign; downloads, digests and binaries are verified. Not yet run on ARM64 hardware |
+| Other Linux CPUs (32-bit ARM, ppc64le, s390x, RISC-V) | Not supported. The installer stops with exit 30 |
+| Windows | Not supported natively: the CLI depends on Unix-only facilities and cannot start. Products that ship on Linux can be collected from Windows with the collector image under Docker Desktop or WSL2. Windows executables and DLLs are not inspected |
+| macOS | Not supported natively and not tested; the installer stops with exit 30. Use the collector image. Mach-O binaries are not inspected |
+
+Any Linux distribution with Python 3.11+ should work: the tools are static binaries. Tested on Kali (Debian-based), with Debian-based container images. RHEL, Alpine and SUSE are untested. This repository's own CI runs on GitHub's Ubuntu x86-64 runners; customers do not need Ubuntu.
+
 ## Install
 
-Python 3.11 or newer. The collector, local engine and gate have no runtime dependencies.
+Python 3.11 or newer on Linux (see [Supported platforms](#supported-platforms)). The collector, local engine and gate have no runtime dependencies.
 
 ```bash
 python3 -m venv .venv

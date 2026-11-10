@@ -35,6 +35,25 @@ Docker 28.5.2 and Compose 2.40.3 on the same host. First run of the images and t
 
 Observations: the images write as uid 10001, so a mounted workspace must be writable by that user, or the container must run with `--user` as the shared action does. The `local` image then cannot read the database volume, which is private to uid 10001. Image scans see Debian packages, not the statically linked Conan zlib inside the binary; that comes from the Conan and CMake evidence.
 
+## Linux ARM64 support, 10 November 2026
+
+Run on the same x86-64 host. No ARM64 hardware or CPU emulation was available, so nothing was executed as ARM64.
+
+| Check | Result |
+| --- | --- |
+| ARM64 digests for Syft 1.57.0, Grype 0.121.2, cosign 3.1.4 | Release checksum files and the GitHub release asset API agree. The existing amd64 pins match the same files |
+| `scripts/install_tools.sh` on x86-64 | Installs and runs all three tools |
+| Installer with `uname -m` reporting `aarch64` | Downloads pass their digests; all three binaries are `ELF 64-bit, ARM aarch64`. The final version step cannot execute here |
+| Installer with a changed digest | Aborts at the checksum, before unpacking |
+| Installer on `riscv64` and `Darwin` | Stops with exit 30 and a message |
+| Dockerfile tool stages with `--platform linux/arm64` | Syft and Grype ARM64 downloads pass their pinned checksums |
+| x86-64 images after the change | Build and run; collector, local and server are 216, 311 and 236 MB (were 247, 375, 268). Compose end to end: 23 findings, gate 10 |
+| `requirements/hosted.lock` | Universal lock: includes the ARM64 manylinux wheel hash for `pydantic-core`; other packages are pure Python |
+| ELF inspection of the ARM64 cosign binary on x86-64 | Parsed: machine 183 (AArch64) |
+| `tests/test_tool_pins.py` | Installer and Dockerfile pins agree for both architectures; a changed digest fails the test |
+
+Not verified: running `cra`, the tools or the images on ARM64. GitHub's ARM64 runners are not used, because this repository is private and they would be a paid resource.
+
 ## Cross-language audit verification
 
 The follow-up audit added Python pip-inspect and language-independent directory collection, output safety, configuration validation and gate consistency checks. Current local verification:

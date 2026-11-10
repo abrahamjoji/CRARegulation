@@ -1,12 +1,21 @@
 # syntax=docker/dockerfile:1
 # Hosted API and worker for LOCAL DEVELOPMENT. See docs/PRODUCTION.md before any other use.
+# Platforms: linux/amd64 and linux/arm64. BuildKit sets TARGETARCH; hosted.lock is
+# universal and holds the hashes of both architectures' wheels.
+ARG TARGETARCH
+
+FROM scratch AS grype-amd64
+ADD --checksum=sha256:9c8965ced9df657e5e851c14021bae838802f711edd7a48f9bc3c923a8d28f12 https://github.com/anchore/grype/releases/download/v0.121.2/grype_0.121.2_linux_amd64.tar.gz /grype.tar.gz
+FROM scratch AS grype-arm64
+ADD --checksum=sha256:d7d2e160255b0f087280feabf6f213cf4c45d475690f3f1fe5dc336eb1037bf0 https://github.com/anchore/grype/releases/download/v0.121.2/grype_0.121.2_linux_arm64.tar.gz /grype.tar.gz
+FROM grype-${TARGETARCH} AS grype
+
 FROM python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 GRYPE_CHECK_FOR_APP_UPDATE=false PYTHONPATH=/opt/cra
 RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin cra
 COPY requirements/hosted.lock /tmp/hosted.lock
 RUN pip install --no-cache-dir --require-hashes -r /tmp/hosted.lock && rm /tmp/hosted.lock
-ADD --checksum=sha256:9c8965ced9df657e5e851c14021bae838802f711edd7a48f9bc3c923a8d28f12 https://github.com/anchore/grype/releases/download/v0.121.2/grype_0.121.2_linux_amd64.tar.gz /tmp/grype.tar.gz
-RUN tar -xzf /tmp/grype.tar.gz -C /usr/local/bin grype && rm /tmp/grype.tar.gz
+RUN --mount=type=bind,from=grype,target=/dl tar -xzf /dl/grype.tar.gz -C /usr/local/bin grype
 COPY src/cra /opt/cra/cra
 # Named volumes inherit this ownership, so the non-root user can write to them.
 RUN mkdir -p /data /grype-db && chown 10001:10001 /data /grype-db

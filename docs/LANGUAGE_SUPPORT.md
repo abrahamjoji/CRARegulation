@@ -12,6 +12,21 @@ The tool scans dependencies and selected artifacts. It is not a source-code vuln
 | Make/Meson/other native builds | Staged deployment directory/image, ELF artifacts and explicit component records | No build-system-specific graph inference; unidentified dependencies stay visible |
 | Other languages | Selected directory or container inventory through pinned Syft | Whatever the installed Syft catalogers identify; not a promise of a dedicated adapter for every language |
 
+## Platforms
+
+Two questions decide whether a project is covered: where `cra` runs, and what the product is built for.
+
+**Where `cra` runs.** Linux on x86-64 or ARM64, directly or in the collector image. `scripts/install_tools.sh` and the Dockerfiles pick the matching pinned Syft, Grype and cosign builds and refuse anything else with exit 30. x86-64 is fully tested. On ARM64, the downloads, digests, binary architecture and image build stages are verified, but `cra` has not yet been run on ARM64 hardware. Windows and macOS cannot run the CLI natively: it relies on Unix-only facilities for process limits and safe file access. On those hosts, run the collector image under Docker Desktop or WSL2.
+
+**What the product is built for.**
+
+| Product target | Coverage |
+| --- | --- |
+| Linux on any CPU (x86-64, ARM64, 32-bit ARM, RISC-V and others) | ELF inspection is architecture-independent: binaries cross-compiled for an embedded target can be inspected from an x86-64 build machine. A container image is scanned for one platform: from a multi-architecture index, Syft picks the machine's own platform. To cover another architecture, add an `[[images]]` entry pinned to that platform's manifest digest |
+| Python distributions | Supported wherever `pip inspect` ran, because only its JSON is read. Capturing it on Windows or macOS and collecting on Linux is untested |
+| Windows applications (PE executables, DLLs) | Not supported. Binaries are not inspected and no MSVC or vcpkg evidence is read. Syft may still identify packages from lockfiles in a directory scan |
+| macOS applications (Mach-O) | Not supported |
+
 ## Python
 
 Copy [the Python configuration](../examples/projects/python/cra.toml) into the customer's project root. After installing the customer's actual dependencies, run:
