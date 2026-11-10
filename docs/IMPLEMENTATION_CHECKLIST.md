@@ -18,8 +18,8 @@ For anyone deciding what they can rely on. Status terms:
 | 3 | Local prepare and collect pipeline | Done |
 | 4 | Normalized inventory and artifact evidence | Done |
 | 5 | Scanner integration, reports and policy gate | Done |
-| 6 | CLI and container packaging, CI example | CLI tested. Containers and CI unverified |
-| 7 | Hosted API, isolated workers, local deployment | API and worker tested. Compose unverified. Isolation partial |
+| 6 | CLI and container packaging, CI example | CLI and container images tested locally. CI unverified |
+| 7 | Hosted API, isolated workers, local deployment | API, worker and local Compose tested. Isolation partial |
 | 8 | Security review, documentation, pilot checklist | Done, as an author's review. No independent review |
 
 ## Repository assessment
@@ -43,8 +43,8 @@ See [PROJECT_AUDIT.md](PROJECT_AUDIT.md) for the cross-language review, correcti
 | ELF inspection and version strings | Tested | On real reference binaries; hostile input by mutation test |
 | Exported OCI image archive, real Syft | Tested | Images are synthetic: real package records, not built from the Dockerfile |
 | Pinned registry image, real Syft, no daemon | Tested | busybox by digest, including index digest handling |
-| Docker-save archive format | Unverified | Code path exists; no real archive tried |
-| Real multi-stage Docker build | Unverified | `reference/image/Dockerfile` never built |
+| Docker-save archive format | Tested | `docker save` of the reference final and builder images, collected in the collector image |
+| Real multi-stage Docker build | Tested | `reference/image/Dockerfile` built and run. Needed `make`, `CMAKE_BUILD_TYPE` and the image's compiler version |
 | Customer component records | Tested | Own parser; no external tool involved |
 | Reconciliation and conflicts | Tested | Reference matches the hand-written expectation. Conflict cases use constructed inputs |
 | Grype adapter | Tested | Grype 0.121.2, including missing database |
@@ -55,9 +55,9 @@ See [PROJECT_AUDIT.md](PROJECT_AUDIT.md) for the cross-language review, correcti
 | Reports | Tested | Hostile content test uses constructed data. Layout not reviewed by a person in a browser |
 | CRA readiness reuse | Mocked | Uses the repository's fictional demo records |
 | Wheel packaging | Tested | Built, installed in a clean environment |
-| Collector without engine | Tested | Layout simulated by copying the package without `engine` and `hosted` |
-| Collector and server images | Unverified | No Docker here. Base image digest and tool digests are real |
-| Docker Compose | Unverified | YAML parses. Never started |
+| Collector without engine | Tested | Real `collector` image: no `engine`, `hosted` or Grype; local analyze exits 32 with `engine_not_included` |
+| Collector and server images | Tested | Docker 28.5.2. Built with checksum-pinned Syft and Grype; non-root uid 10001; collector, local and server images run |
+| Docker Compose | Tested | Compose 2.40.3. Results equal `cra-local`; worker has no egress; read-only root, no capabilities; API on loopback only |
 | GitHub Action and workflows | Unverified | Passes `actionlint` 1.7.12. Never run on GitHub |
 | Hosted API | Tested | Real uvicorn over loopback |
 | Worker with real Grype | Tested | Findings match the local run |
