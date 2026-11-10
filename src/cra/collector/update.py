@@ -8,6 +8,7 @@ import json
 import os
 import re
 import shutil
+import tempfile
 from pathlib import Path
 
 from ..common.errors import EXIT_PASSED, ConfigError, CraError, EXIT_AUTH, OperationalError
@@ -31,7 +32,7 @@ def verify_release(release_dir, *, cosign="cosign", public_key=None, certificate
     release_dir = Path(release_dir).resolve()
     document_path = release_dir / "release.json"
     bundle = release_dir / "release.json.sigstore.json"
-    if not document_path.is_file() or not bundle.is_file():
+    if document_path.is_symlink() or bundle.is_symlink() or not document_path.is_file() or not bundle.is_file():
         raise VerificationError("release_unsigned", "A release needs release.json and release.json.sigstore.json.")
     if bool(public_key) == bool(certificate_identity):
         raise ConfigError("release_trust_missing", "Choose one trust root: --public-key, or --certificate-identity with --certificate-issuer.")
@@ -42,23 +43,24 @@ def verify_release(release_dir, *, cosign="cosign", public_key=None, certificate
         if not certificate_issuer:
             raise ConfigError("release_trust_missing", "--certificate-identity also needs --certificate-issuer.")
         argv += ["--certificate-identity", certificate_identity, "--certificate-oidc-issuer", certificate_issuer]
-    result = run_tool(argv, limits=Limits(timeout_seconds=120), env=tool_environment({"HOME": str(release_dir), "TUF_ROOT": str(release_dir / ".tuf-cache")}))
-    shutil.rmtree(release_dir / ".tuf-cache", ignore_errors=True)
-    shutil.rmtree(release_dir / ".sigstore", ignore_errors=True)
+    with tempfile.TemporaryDirectory(prefix="cra-cosign-") as cache:
+        result = run_tool(argv, limits=Limits(timeout_seconds=120), env=tool_environment({"HOME": cache, "TUF_ROOT": str(Path(cache) / "tuf")}))
     if result.missing:
         raise OperationalError("cosign_missing", f"cosign is not available: {result.stderr}")
     if result.returncode:
         raise VerificationError("release_signature_invalid", f"Signature verification failed: {result.stderr[:400]}")
     document = read_json(document_path, 1024 * 1024)
-    if not isinstance(document, dict) or document.get("schema_version") != RELEASE_SCHEMA or not _VERSION.match(str(document.get("version"))):
+    if not isinstance(document, dict) or document.get("schema_version") != RELEASE_SCHEMA or not _VERSION.fullmatch(str(document.get("version"))):
         raise VerificationError("release_document_invalid", f"release.json is not a valid {RELEASE_SCHEMA} document.")
     files = document.get("files")
     if not isinstance(files, list) or not files:
         raise VerificationError("release_document_invalid", "release.json lists no files.")
+    names = set()
     for entry in files:
         name = entry.get("name") if isinstance(entry, dict) else None
-        if not isinstance(name, str) or "/" in name or name.startswith("."):
+        if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", name) or name in names or name in ("release.json", "release.json.sigstore.json"):
             raise VerificationError("release_document_invalid", f"unsafe file name in release.json: {name!r}")
+        names.add(name)
         target = release_dir / name
         if not target.is_file() or target.is_symlink():
             raise VerificationError("release_file_missing", f"{name} is listed but not present.")
@@ -89,16 +91,20 @@ def activate(release_dir, home, *, allow_downgrade=False, **trust):
     versions.mkdir(parents=True, exist_ok=True)
     target = versions / version
     if target.exists():
-        existing = read_json(target / "release.json", 1024 * 1024)
+        if target.is_symlink():
+            raise VerificationError("release_mutated", "Installed releases must not be symlinks.")
+        existing = verify_release(target, **trust)
         if existing.get("files") != document.get("files"):
             raise VerificationError("release_mutated", f"Version {version} is already installed with different content. Releases are immutable.")
     else:
-        staging = versions / f".{version}.staging"
-        shutil.rmtree(staging, ignore_errors=True)
-        staging.mkdir()
-        for name in ["release.json", "release.json.sigstore.json"] + [entry["name"] for entry in document["files"]]:
-            shutil.copyfile(Path(release_dir) / name, staging / name)
-        os.replace(staging, target)
+        with tempfile.TemporaryDirectory(prefix=f".{version}.", dir=versions) as temporary:
+            staging = Path(temporary) / "release"
+            staging.mkdir()
+            for name in ["release.json", "release.json.sigstore.json"] + [entry["name"] for entry in document["files"]]:
+                shutil.copyfile(Path(release_dir) / name, staging / name)
+            if verify_release(staging, **trust) != document:
+                raise VerificationError("release_mutated", "Release changed while being installed.")
+            os.replace(staging, target)
     if current != version:
         state["previous"], state["current"] = current, version
     state["history"].append({"action": "activate", "version": version})
@@ -113,10 +119,15 @@ def rollback(home, *, to_version=None, **trust):
     version = to_version or state.get("previous")
     if not version:
         raise CraError("rollback_unavailable", "There is no earlier release to return to.", 30, {})
+    if not isinstance(version, str) or not _VERSION.fullmatch(version):
+        raise VerificationError("release_document_invalid", "Rollback version must be a semantic version.")
     target = home / "versions" / version
+    if target.is_symlink():
+        raise VerificationError("release_mutated", "Installed releases must not be symlinks.")
     if not target.is_dir():
         raise CraError("rollback_unavailable", f"Release {version} is not installed.", 30, {})
-    verify_release(target, **trust)
+    if verify_release(target, **trust)["version"] != version:
+        raise VerificationError("release_mutated", "Installed release version does not match its directory.")
     state["previous"], state["current"] = state.get("current"), version
     state["history"].append({"action": "rollback", "version": version})
     write_json(_state_path(home), state)

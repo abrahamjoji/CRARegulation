@@ -7,6 +7,7 @@ import os
 import tempfile
 from pathlib import Path
 
+from ..common.bundle import bundle_file
 from ..common.errors import UntrustedInputError, diagnostic
 from ..common.safety import Limits, read_json, run_tool, tool_environment, write_json
 from ..common.safety import MIB
@@ -192,7 +193,7 @@ def scan_inventory(inventory, collection_root, tools, work_dir, store):
         if artifact.get("kind") in ("image", "directory") and artifact.get("evidence"):
             record = next((item for item in inventory["evidence"] if item["id"] == artifact["evidence"]), None)
             if record:
-                plans.append((f"{artifact['kind']}:{artifact['id']}", Path(collection_root) / record["path"], False))
+                plans.append((f"{artifact['kind']}:{artifact['id']}", bundle_file(collection_root, record["path"]), False))
     for label, path, generated in plans:
         output = work_dir / f"grype-{label.replace(':', '-')}.json"
         document, problems = run_scan(path, tools, output, generated_cpes=generated)

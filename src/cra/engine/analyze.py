@@ -5,7 +5,7 @@ from pathlib import Path
 
 from .. import __version__
 from ..common import purl as purls
-from ..common.bundle import EvidenceStore, reset_output, verify_manifest, write_manifest
+from ..common.bundle import EvidenceStore, reset_output, verify_manifest, verify_evidence_references, write_manifest
 from ..common.errors import UntrustedInputError, diagnostic
 from ..common.safety import read_json, sha256_file, stable_id, write_json
 from . import grype, kev, policy as policy_module, readiness as readiness_module, reconcile, report, vex
@@ -19,6 +19,8 @@ def _find_component(inventory, match):
     key = purls.strip(match["purl"])
     if key in components:
         return components[key]
+    if match["purl"]:
+        return None  # An explicit identity must never be reassigned to another ecosystem.
     same = [item for item in inventory["components"] if item["identity"]["name"] == match["name"] and item["identity"]["version"] == match["version"]]
     return same[0] if len(same) == 1 else None
 
@@ -152,6 +154,7 @@ def run_analysis(collection_dir, analysis_settings, tools, destination, kev_path
     if problems:
         raise UntrustedInputError("collection_integrity", "collection manifest does not match its files: " + "; ".join(problems[:5]))
     collection = reconcile.validate_collection(read_json(collection_dir / "collection.json"))
+    verify_evidence_references(collection_dir, collection)
     reset_output(destination, "analysis", protected=[collection_dir, Path.cwd(), analysis_settings.policy,
                                                    analysis_settings.kev, analysis_settings.product_file, analysis_settings.risk_file,
                                                    analysis_settings.register_file] + analysis_settings.vex)

@@ -1,5 +1,6 @@
 """Customer-approved policy, and evaluation of findings against it for each gate mode."""
 import datetime as dt
+import math
 import tomllib
 from pathlib import Path
 
@@ -42,12 +43,27 @@ def _validated(raw, label):
         policy[section] = {**DEFAULT[section], **table}
     for mode in ("build", "release"):
         table = policy[mode]
-        if not set(table["block_severities"]) <= set(SEVERITIES):
+        if not isinstance(table["block_severities"], list) or any(not isinstance(value, str) or value not in SEVERITIES for value in table["block_severities"]):
             raise ConfigError("policy_invalid", f"{label}: {mode}.block_severities has unknown values")
         if table["block_scope"] not in SCOPES:
             raise ConfigError("policy_invalid", f"{label}: {mode}.block_scope must be one of {SCOPES}")
-        if table["minimum_confidence"] not in CONFIDENCE:
+        if not isinstance(table["minimum_confidence"], str) or table["minimum_confidence"] not in CONFIDENCE:
             raise ConfigError("policy_invalid", f"{label}: {mode}.minimum_confidence must be low, medium or high")
+        for key, default in DEFAULT[mode].items():
+            if isinstance(default, bool) and not isinstance(table[key], bool):
+                raise ConfigError("policy_invalid", f"{label}: {mode}.{key} must be a boolean")
+    authors = policy["vex"]["trusted_authors"]
+    if not isinstance(authors, list) or any(not isinstance(author, str) or not author.strip() for author in authors):
+        raise ConfigError("policy_invalid", f"{label}: vex.trusted_authors must list nonempty strings")
+    for key in ("max_vulnerability_data_age_hours", "max_kev_age_hours"):
+        value = policy["freshness"][key]
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+            raise ConfigError("policy_invalid", f"{label}: freshness.{key} must be finite and positive")
+    if not isinstance(policy["freshness"]["kev_required"], bool):
+        raise ConfigError("policy_invalid", f"{label}: freshness.kev_required must be a boolean")
+    days = policy["triage"]["max_investigation_days"]
+    if isinstance(days, bool) or not isinstance(days, int) or days <= 0:
+        raise ConfigError("policy_invalid", f"{label}: triage.max_investigation_days must be a positive integer")
     return policy
 
 
@@ -98,6 +114,8 @@ def incompleteness(inventory, scan, kev_identity, kev_problem, vex_problems, pol
         age = _age_hours(kev_identity.get("date_released"), now)
         if age is None and fresh["kev_required"]:
             reasons.append({"code": "kev_age_unknown", "subject": "kev", "message": "The KEV catalogue does not state a usable release date.", "origin": "input"})
+        elif age is not None and age < -5 / 60:
+            reasons.append({"code": "kev_in_future", "subject": "kev", "message": "The KEV catalogue release time is in the future.", "origin": "input"})
         elif age is not None and age > fresh["max_kev_age_hours"]:
             reasons.append({"code": "kev_stale", "subject": "kev", "message": f"The KEV catalogue is {age:.0f} hours old; the limit is {fresh['max_kev_age_hours']}.", "origin": "input"})
     database = (scan.get("scanner") or {}).get("database") or {}
@@ -105,6 +123,8 @@ def incompleteness(inventory, scan, kev_identity, kev_problem, vex_problems, pol
     age = _age_hours(built, now)
     if age is None:
         reasons.append({"code": "vulnerability_data_age_unknown", "subject": "grype-db", "message": "The vulnerability database did not state a build time.", "origin": "tool"})
+    elif age < -5 / 60:
+        reasons.append({"code": "vulnerability_data_in_future", "subject": "grype-db", "message": "The vulnerability database build time is in the future.", "origin": "tool"})
     elif age > fresh["max_vulnerability_data_age_hours"]:
         reasons.append({"code": "vulnerability_data_stale", "subject": "grype-db", "message": f"Vulnerability data is {age:.0f} hours old; the limit is {fresh['max_vulnerability_data_age_hours']}.", "origin": "tool"})
     reasons += [dict(item, origin="input") for item in vex_problems]
@@ -141,8 +161,7 @@ def _evaluate_mode(mode, findings, inventory, policy, incomplete, readiness, now
             if age is None or age < 0 or age / 24 > limit:
                 block("investigation_overdue", f"The investigation of {label} is older than the {limit}-day limit or has no usable start date.", finding)
         decision = (finding.get("register") or {}).get("release_decision") or {}
-        documented_release = mode == "release" and decision.get("decision") == "release_with_documented_risk"
-        if status in open_states and not documented_release and finding["severity"] in rules["block_severities"] and _in_scope(finding, rules["block_scope"]):
+        if status in open_states and finding["severity"] in rules["block_severities"] and _in_scope(finding, rules["block_scope"]):
             if status == "affected" or CONFIDENCE.get(finding["matching"]["confidence"], 0) >= minimum:
                 block("severity_blocked", f"{label}: {finding['severity']} severity, status {status}, shipped {finding['presence']['shipped']}.", finding)
         if mode == "release":

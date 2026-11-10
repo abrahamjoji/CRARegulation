@@ -4,6 +4,7 @@ The gate needs no analysis engine, so it runs in the collector-only distribution
 A missing, malformed or unverifiable result is incomplete, and never a pass.
 """
 import datetime as dt
+import math
 from pathlib import Path
 
 from . import __version__
@@ -23,6 +24,8 @@ def _failure(mode, code, message):
 def evaluate_gate(analysis_dir, mode="build", expect_revision=None, expect_artifacts=None, expect_policy=None, max_age_hours=None, now=None):
     """Return the gate record. Expectations bind the decision to the current build."""
     now = now or dt.datetime.now(dt.timezone.utc)
+    if max_age_hours is not None and (isinstance(max_age_hours, bool) or not isinstance(max_age_hours, (int, float)) or not math.isfinite(max_age_hours) or max_age_hours <= 0):
+        return _failure(mode, "result_age_invalid", "The result age limit must be finite and positive.")
     analysis_dir = Path(analysis_dir)
     result_path = analysis_dir / "result.json"
     if not result_path.is_file():
@@ -37,7 +40,7 @@ def evaluate_gate(analysis_dir, mode="build", expect_revision=None, expect_artif
     if not isinstance(result, dict) or result.get("schema_version") != SUPPORTED_RESULT:
         return _failure(mode, "result_schema_unsupported", f"Expected result schema {SUPPORTED_RESULT}.")
     evaluation = (result.get("evaluation") or {}).get(mode) if isinstance(result.get("evaluation"), dict) else None
-    if not isinstance(evaluation, dict) or evaluation.get("outcome") not in OUTCOME_EXIT:
+    if not isinstance(evaluation, dict) or not isinstance(evaluation.get("outcome"), str) or evaluation["outcome"] not in OUTCOME_EXIT:
         return _failure(mode, "result_malformed", f"The result has no usable evaluation for gate mode {mode}.")
     for field in ("incomplete_reasons", "policy_violations"):
         rows = evaluation.get(field)
@@ -49,8 +52,10 @@ def evaluate_gate(analysis_dir, mode="build", expect_revision=None, expect_artif
         return _failure(mode, "result_inconsistent", "A passed result contains incomplete reasons or policy violations.")
     if not isinstance(result.get("source"), dict) or not isinstance(result.get("policy"), dict):
         return _failure(mode, "result_malformed", "Result source and policy must be objects.")
-    if not isinstance(result.get("artifacts"), list):
+    if not isinstance(result.get("artifacts"), list) or any(not isinstance(item, dict) or not isinstance(item.get("id"), str) for item in result["artifacts"]):
         return _failure(mode, "result_malformed", "Result artifacts must be a list.")
+    if len({item["id"] for item in result["artifacts"]}) != len(result["artifacts"]):
+        return _failure(mode, "result_malformed", "Artifact ids must be unique.")
     if result.get("scan_status") != "complete" and evaluation["outcome"] != "incomplete":
         return _failure(mode, "result_inconsistent", "The result says the scan was incomplete but evaluates to a final outcome.")
 
@@ -64,7 +69,7 @@ def evaluate_gate(analysis_dir, mode="build", expect_revision=None, expect_artif
     for identifier, digest in (expect_artifacts or {}).items():
         record = artifacts.get(identifier)
         actual = (record or {}).get("sha256") or (record or {}).get("digest") or ""
-        if actual.removeprefix("sha256:") != digest.removeprefix("sha256:"):
+        if not isinstance(actual, str) or actual.removeprefix("sha256:") != digest.removeprefix("sha256:"):
             binding.append({"code": "artifact_mismatch", "message": f"Artifact {identifier} in the result is {actual or 'absent'}, expected {digest}."})
     policy = result.get("policy") or {}
     if expect_policy and policy.get("sha256") != expect_policy:

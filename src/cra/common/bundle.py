@@ -5,6 +5,8 @@ authentication: anyone who can rewrite the directory can rewrite the manifest.
 """
 import json
 import shutil
+import re
+from pathlib import PurePosixPath
 from pathlib import Path
 
 from .errors import UntrustedInputError
@@ -87,34 +89,82 @@ def write_manifest(root, extra_files=(), **metadata):
     for path in sorted(root.rglob("*")):
         if path.is_symlink():
             raise UntrustedInputError("bundle_symlink", f"evidence bundle contains a symlink: {path}")
-        if path.is_file() and path.name != MANIFEST:
+        if path.is_file() and path != root / MANIFEST:
             files.append({"path": path.relative_to(root).as_posix(), "sha256": sha256_file(path), "bytes": path.stat().st_size})
     manifest = {"schema_version": MANIFEST_SCHEMA, "authenticated": False, "files": files, **metadata}
     write_json(root / MANIFEST, manifest)
     return manifest
 
 
-def verify_manifest(root):
-    """Return problems: changed, missing or unlisted files. An empty list means hashes agree."""
+def bundle_file(root, relative):
+    """Resolve only canonical relative regular files; every parent must stay inside the bundle."""
     root = Path(root)
-    manifest = read_json(root / MANIFEST)
+    if not isinstance(relative, str) or not relative or "\\" in relative:
+        raise UntrustedInputError("manifest_invalid", "bundle paths must be canonical relative paths")
+    parts = PurePosixPath(relative)
+    if parts.is_absolute() or parts.as_posix() != relative or any(part in (".", "..") for part in parts.parts):
+        raise UntrustedInputError("manifest_invalid", "bundle path is not canonical or escapes its root")
+    current = root
+    if root.is_symlink():
+        raise UntrustedInputError("bundle_symlink", "bundle root must not be a symlink")
+    for part in parts.parts:
+        current = current / part
+        if current.is_symlink():
+            raise UntrustedInputError("bundle_symlink", "bundle paths must not traverse symlinks")
+    if not current.resolve().is_relative_to(root.resolve()):
+        raise UntrustedInputError("manifest_invalid", "bundle path escapes its root")
+    return current
+
+
+def verify_manifest(root):
+    """Check paths, types, sizes, hashes and the complete file set before consuming a bundle."""
+    root = Path(root)
+    manifest_path = bundle_file(root, MANIFEST)
+    manifest = read_json(manifest_path)
     if not isinstance(manifest, dict) or manifest.get("schema_version") != MANIFEST_SCHEMA or not isinstance(manifest.get("files"), list):
-        raise UntrustedInputError("manifest_invalid", f"{root / MANIFEST}: not a {MANIFEST_SCHEMA} manifest")
+        raise UntrustedInputError("manifest_invalid", "invalid evidence manifest")
     problems, listed = [], set()
-    resolved_root = root.resolve()
     for record in manifest["files"]:
-        if not isinstance(record, dict) or not isinstance(record.get("path"), str):
-            raise UntrustedInputError("manifest_invalid", "manifest entry needs a path")
-        target = (root / record["path"])
-        if not target.resolve().is_relative_to(resolved_root):
-            raise UntrustedInputError("manifest_invalid", f"manifest path escapes the bundle: {record['path']}")
-        listed.add(record["path"])
+        if not isinstance(record, dict):
+            raise UntrustedInputError("manifest_invalid", "manifest entries must be objects")
+        name = record.get("path")
+        target = bundle_file(root, name)
+        size, digest = record.get("bytes"), record.get("sha256")
+        if name == MANIFEST or name in listed:
+            raise UntrustedInputError("manifest_invalid", "duplicate or self-referential manifest entry")
+        if isinstance(size, bool) or not isinstance(size, int) or size < 0 or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise UntrustedInputError("manifest_invalid", "manifest entries need nonnegative size and SHA-256")
+        listed.add(name)
         if not target.is_file():
-            problems.append(f"missing: {record['path']}")
-        elif sha256_file(target) != record.get("sha256"):
-            problems.append(f"changed: {record['path']}")
+            problems.append(f"missing: {name}")
+        elif target.stat().st_size != size or sha256_file(target) != digest:
+            problems.append(f"changed: {name}")
     for path in root.rglob("*"):
+        if path.is_symlink():
+            raise UntrustedInputError("bundle_symlink", "bundle contains a symlink")
         relative = path.relative_to(root).as_posix()
-        if path.is_file() and path.name != MANIFEST and relative not in listed:
+        if path.is_file() and path != root / MANIFEST and relative not in listed:
             problems.append(f"unlisted: {relative}")
+        elif not path.is_file() and not path.is_dir():
+            raise UntrustedInputError("manifest_invalid", "bundle contains a special file")
     return problems
+
+
+def verify_evidence_references(root, collection):
+    """A collection must not direct the scanner to files outside its verified manifest."""
+    manifest = read_json(Path(root) / MANIFEST)
+    listed = {row["path"]: row for row in manifest["files"]}
+    identities = set()
+    for record in collection["evidence"]:
+        if not isinstance(record, dict) or not isinstance(record.get("id"), str) or record["id"] in identities:
+            raise UntrustedInputError("collection_evidence_invalid", "evidence identifiers must be unique strings")
+        identities.add(record["id"])
+        name = record.get("path")
+        path = bundle_file(root, name)
+        expected = listed.get(name)
+        if not expected or not path.is_file() or any(record.get(key) != expected[key] for key in ("bytes", "sha256")):
+            raise UntrustedInputError("collection_evidence_invalid", "evidence reference does not match the verified manifest")
+    for record in collection["observations"] + collection["artifacts"]:
+        evidence = record.get("evidence")
+        if evidence and (not isinstance(evidence, str) or evidence not in identities):
+            raise UntrustedInputError("collection_evidence_invalid", "observation/artifact names unknown evidence")
