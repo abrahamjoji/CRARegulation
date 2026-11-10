@@ -99,13 +99,12 @@ def create_app(settings: Settings | None = None):
             if "collection/collection.json" not in members or "collection/manifest.json" not in members:
                 raise HTTPException(status_code=422, detail={"code": "bundle_incomplete", "message": "The bundle needs collection/collection.json and collection/manifest.json."})
             try:
-                job, created = await run_in_threadpool(database.create_job, found, key, declared, received, settings.max_active_jobs_per_project)
+                job, created = await run_in_threadpool(database.create_job, found, key, declared, received, settings.max_active_jobs_per_project,
+                    publish=lambda identifier: storage.adopt_upload(temporary, found.tenant_id, found.project_id, identifier))
             except OverflowError as exc:
                 raise HTTPException(status_code=429, detail={"code": "too_many_active_jobs", "message": "Wait for active jobs to finish."}, headers={"Retry-After": "30"}) from exc
             if job is None:
                 raise HTTPException(status_code=409, detail={"code": "idempotency_conflict", "message": "This key was already used with different content."})
-            if created:
-                storage.adopt_upload(temporary, found.tenant_id, found.project_id, job["id"])
             return JSONResponse(status_code=202, content={**_public_job(job), "idempotent_replay": not created})
         finally:
             temporary.unlink(missing_ok=True)
@@ -128,8 +127,8 @@ def create_app(settings: Settings | None = None):
     @app.delete("/v1/jobs/{job_id}")
     def job_delete(job_id: str, found: Principal = Depends(require("delete"))):
         job = lookup(found, job_id)
-        storage.delete_job(found.tenant_id, found.project_id, job["id"])
         database.mark_deleted(found, job["id"])
+        storage.delete_job(found.tenant_id, found.project_id, job["id"])
         return {"job_id": job["id"], "status": "deleted"}
 
     @app.get("/v1/audit")

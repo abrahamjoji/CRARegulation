@@ -6,6 +6,7 @@ are not in that bundle. The token is read from the environment and sent to one h
 import ipaddress
 import json
 import os
+import re
 import shutil
 import socket
 import tempfile
@@ -36,7 +37,11 @@ _OPENER = urllib.request.build_opener(_NoRedirect)
 
 
 def check_url(url):
+    if not isinstance(url, str) or any(ord(character) <= 32 or ord(character) == 127 for character in url):
+        raise ConfigError("hosted_url_invalid", "hosted.url must not contain whitespace or control characters.")
     parts = urllib.parse.urlsplit(url or "")
+    if parts.query or parts.fragment:
+        raise ConfigError("hosted_url_invalid", "hosted.url must not contain a query or fragment.")
     if not parts.scheme or not parts.hostname:
         raise ConfigError("hosted_url_missing", "Set hosted.url in cra.toml to use --hosted.")
     if parts.username or parts.password:
@@ -64,10 +69,23 @@ def request(method, url, token, *, data=None, headers=None, destination=None, ti
             with _OPENER.open(call, timeout=timeout) as response:
                 if destination:
                     with open(destination, "wb") as output:
-                        shutil.copyfileobj(response, output, 1024 * 1024)
+                        received = 0
+                        while chunk := response.read(1024 * 1024):
+                            received += len(chunk)
+                            if received > 256 * 1024 * 1024:
+                                raise OperationalError("hosted_result_too_large", "Result download exceeds the 256 MiB transport limit.")
+                            output.write(chunk)
                     return response.status, {}
-                body = response.read(8 * 1024 * 1024)
-                return response.status, json.loads(body) if body else {}
+                body = response.read(8 * 1024 * 1024 + 1)
+                if len(body) > 8 * 1024 * 1024:
+                    raise OperationalError("hosted_response_invalid", "Service JSON exceeds the response limit.")
+                try:
+                    value = json.loads(body) if body else {}
+                except (ValueError, UnicodeDecodeError):
+                    raise OperationalError("hosted_response_invalid", "Service returned invalid JSON.") from None
+                if not isinstance(value, dict):
+                    raise OperationalError("hosted_response_invalid", "Service response must be an object.")
+                return response.status, value
         except urllib.error.HTTPError as exc:
             detail = {}
             try:
@@ -90,7 +108,10 @@ def request(method, url, token, *, data=None, headers=None, destination=None, ti
 def build_upload(config, collection_dir, work):
     """Pack only the collection bundle and VEX documents."""
     stage = Path(work) / "stage"
-    shutil.copytree(collection_dir, stage / "collection")
+    problems = verify_manifest(collection_dir)
+    if problems:
+        raise UntrustedInputError("collection_integrity", "; ".join(problems[:5]))
+    shutil.copytree(collection_dir, stage / "collection", symlinks=True)
     problems = verify_manifest(stage / "collection")
     if problems:
         raise UntrustedInputError("collection_integrity", "; ".join(problems[:5]))
@@ -126,7 +147,9 @@ def analyze_hosted(config, collection, destination, args):
         if status != 202:
             error = body.get("error") or {}
             raise OperationalError(error.get("code", "hosted_rejected"), f"The service rejected the upload ({status}): {error.get('message', '')}")
-        job_id = body["job_id"]
+        job_id = body.get("job_id")
+        if not isinstance(job_id, str) or not re.fullmatch(r"[0-9a-f]{32}", job_id):
+            raise OperationalError("hosted_response_invalid", "Service returned an invalid job identifier.")
         deadline = time.monotonic() + config.hosted.timeout_seconds
         while body.get("status") in ("queued", "running"):
             if time.monotonic() > deadline:

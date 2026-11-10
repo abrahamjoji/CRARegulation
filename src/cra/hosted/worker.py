@@ -13,7 +13,7 @@ from pathlib import Path
 
 from ..common.archive import create_tar_gz
 from ..common.errors import UntrustedInputError
-from ..common.safety import Limits, redact_text, run_tool, tool_environment
+from ..common.safety import Limits, redact_text, run_tool, sha256_file, tool_environment
 from .db import Database, Principal
 from .settings import from_environment
 from .storage import Storage
@@ -40,6 +40,9 @@ def process_job(job, database, storage, settings):
         os.chmod(work, 0o700)
         copy = work / "input.tar.gz"
         shutil.copyfile(bundle, copy)
+        if sha256_file(copy) != job["bundle_sha256"]:
+            database.finish_job(job, "failed", error_code="bundle_hash_mismatch", error_message="Stored bundle failed integrity verification.")
+            return "failed"
         policy_path = None
         if job.get("policy_toml"):
             policy_path = work / "policy.toml"
@@ -73,14 +76,23 @@ def process_job(job, database, storage, settings):
             database.requeue(job)
             return "retry"
         storage_path = storage.result(tenant, project, job["id"])
-        temporary = storage_path.with_suffix(".tmp")
+        temporary = work / "result.tar.gz"
         create_tar_gz(analysis, temporary)
-        os.replace(temporary, storage_path)
-        storage_path.chmod(0o600)
-        if not database.finish_job(job, "completed", scan_status=answer["scan_status"]):
-            # Deleted while running: the deletion wins.
-            storage.delete_job(tenant, project, job["id"])
-            return "deleted"
+        temporary.chmod(0o600)
+        def publish():
+            storage_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            # Copy within the destination filesystem, then publish atomically.
+            with tempfile.NamedTemporaryFile(dir=storage_path.parent, delete=False) as staged:
+                staged_path = Path(staged.name)
+                try:
+                    with temporary.open("rb") as source:
+                        shutil.copyfileobj(source, staged)
+                    staged.flush()
+                    os.replace(staged_path, storage_path)
+                finally:
+                    staged_path.unlink(missing_ok=True)
+        if not database.finish_job(job, "completed", scan_status=answer["scan_status"], publish=publish):
+            return "deleted"  # Deleted or superseded; never remove the current worker's files.
     return "completed"
 
 

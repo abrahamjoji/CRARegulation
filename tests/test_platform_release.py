@@ -118,6 +118,22 @@ class Release(unittest.TestCase):
         self.assertEqual(self.code(lambda: update.rollback(self.home, **self.trust))[0], "release_hash_mismatch")
         self.assertEqual(update.load_state(self.home)["current"], "1.1.0")
 
+    def test_reactivate_reverifies_installed_payload(self):
+        release = self.make("1.0.0")
+        update.activate(release, self.home, **self.trust)
+        (self.home / "versions/1.0.0/cra.whl").write_bytes(b"evil")
+        self.assertEqual(self.code(lambda: update.activate(release, self.home, **self.trust))[0], "release_hash_mismatch")
+
+    def test_rollback_path_traversal_rejected(self):
+        self.assertEqual(self.code(lambda: update.rollback(self.home, to_version="../../outside", **self.trust))[0], "release_document_invalid")
+
+    def test_symlink_descriptor_rejected(self):
+        release = self.make("1.0.0")
+        document = release / "release.json"
+        document.rename(release / "other.json")
+        document.symlink_to(release / "other.json")
+        self.assertEqual(self.code(lambda: update.verify_release(release, **self.trust))[0], "release_unsigned")
+
     def test_rollback_without_earlier_release(self):
         update.activate(self.make("1.0.0"), self.home, **self.trust)
         self.assertEqual(self.code(lambda: update.rollback(self.home, **self.trust))[0], "rollback_unavailable")

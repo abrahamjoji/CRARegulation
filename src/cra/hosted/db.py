@@ -79,6 +79,10 @@ class Database:
         connection = sqlite3.connect(self.path)
         try:
             connection.executescript(SCHEMA)
+            connection.execute("BEGIN IMMEDIATE")
+            if "lease_token" not in {row[1] for row in connection.execute("PRAGMA table_info(jobs)")}:
+                connection.execute("ALTER TABLE jobs ADD COLUMN lease_token TEXT")
+            connection.commit()
         finally:
             connection.close()
 
@@ -143,7 +147,7 @@ class Database:
         return Principal(row["tenant_id"], row["project_id"], row["id"], frozenset(row["scopes"].split()))
 
     # Jobs. Every customer-facing function scopes by the principal's project.
-    def create_job(self, principal, idempotency_key, bundle_sha256, bundle_bytes, limit):
+    def create_job(self, principal, idempotency_key, bundle_sha256, bundle_bytes, limit, publish=None):
         """Return (job, created). The same key with different content is a conflict (None, False)."""
         with self.connect(immediate=True) as connection:
             existing = connection.execute("SELECT * FROM jobs WHERE project_id=? AND idempotency_key=?", (principal.project_id, idempotency_key)).fetchone()
@@ -151,6 +155,11 @@ class Database:
                 if existing["bundle_sha256"] != bundle_sha256:
                     return None, False
                 if existing["status"] == "failed":
+                    active = connection.execute("SELECT COUNT(*) FROM jobs WHERE project_id=? AND status IN ('queued','running')", (principal.project_id,)).fetchone()[0]
+                    if active >= limit:
+                        raise OverflowError("too many active jobs")
+                    if publish:
+                        publish(existing["id"])
                     # A retry of a failed job runs it again instead of replaying the failure forever.
                     connection.execute("UPDATE jobs SET status='queued', attempts=0, error_code=NULL, error_message=NULL, lease_until=NULL, updated_at=? WHERE id=?", (iso(), existing["id"]))
                     self.audit("job.retry", existing["id"], tenant_id=principal.tenant_id, project_id=principal.project_id, actor=principal.token_id, connection=connection)
@@ -164,6 +173,8 @@ class Database:
                                (identifier, principal.project_id, idempotency_key, bundle_sha256, bundle_bytes, iso(), iso()))
             self.audit("job.submit", identifier, tenant_id=principal.tenant_id, project_id=principal.project_id, actor=principal.token_id, detail=bundle_sha256, connection=connection)
             job = connection.execute("SELECT * FROM jobs WHERE id=?", (identifier,)).fetchone()
+            if publish:
+                publish(identifier)
         return dict(job), True
 
     def get_job(self, principal, job_id):
@@ -199,15 +210,18 @@ class Database:
                 self.audit("job.failed", job["id"], tenant_id=job["tenant_id"], project_id=job["project_id"], detail="retries exhausted", connection=connection)
                 return {"exhausted": True, **job}
             lease = iso(now + dt.timedelta(seconds=lease_seconds))
-            connection.execute("UPDATE jobs SET status='running', attempts=attempts+1, lease_until=?, updated_at=? WHERE id=?", (lease, iso(), job["id"]))
-            job.update(status="running", attempts=job["attempts"] + 1)
+            token = uuid.uuid4().hex
+            connection.execute("UPDATE jobs SET status='running', attempts=attempts+1, lease_until=?, lease_token=?, updated_at=? WHERE id=?", (lease, token, iso(), job["id"]))
+            job.update(status="running", attempts=job["attempts"] + 1, lease_token=token, lease_until=lease)
         return job
 
-    def finish_job(self, job, status, *, scan_status=None, error_code=None, error_message=None):
+    def finish_job(self, job, status, *, scan_status=None, error_code=None, error_message=None, publish=None):
         with self.connect(immediate=True) as connection:
-            current = connection.execute("SELECT status FROM jobs WHERE id=?", (job["id"],)).fetchone()
-            if current is None or current["status"] == "deleted":
+            current = connection.execute("SELECT status, lease_token FROM jobs WHERE id=?", (job["id"],)).fetchone()
+            if current is None or current["status"] != "running" or not job.get("lease_token") or current["lease_token"] != job["lease_token"]:
                 return False
+            if publish:
+                publish()
             connection.execute("UPDATE jobs SET status=?, scan_status=?, error_code=?, error_message=?, lease_until=NULL, updated_at=? WHERE id=?",
                                (status, scan_status, error_code, (error_message or "")[:1000] or None, iso(), job["id"]))
             self.audit(f"job.{status}", job["id"], tenant_id=job["tenant_id"], project_id=job["project_id"], detail=error_code or scan_status or "", connection=connection)
@@ -215,7 +229,7 @@ class Database:
 
     def requeue(self, job):
         with self.connect(immediate=True) as connection:
-            connection.execute("UPDATE jobs SET status='queued', lease_until=NULL, updated_at=? WHERE id=? AND status='running'", (iso(), job["id"]))
+            connection.execute("UPDATE jobs SET status='queued', lease_until=NULL, updated_at=? WHERE id=? AND status='running' AND lease_token=?", (iso(), job["id"], job.get("lease_token")))
 
     def expired_jobs(self, now=None):
         """Terminal jobs past their project's retention period."""
