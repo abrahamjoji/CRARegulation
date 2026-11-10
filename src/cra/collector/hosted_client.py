@@ -107,10 +107,14 @@ def build_upload(config, collection_dir, work):
 def analyze_hosted(config, collection, destination, args):
     """Submit, wait, retrieve. On any failure no result exists, so the gate cannot pass."""
     base = check_url(config.hosted.url)
-    token = os.environ.get(config.hosted.token_env)
+    # Clear any earlier result first, so a token problem cannot leave a stale result for the gate.
+    reset_output(destination, "analysis", protected=[collection, config.root, config.path])
+    token = (os.environ.get(config.hosted.token_env) or "").strip()
     if not token:
         raise AuthError("hosted_token_missing", f"Set {config.hosted.token_env} to a project token.")
-    reset_output(destination, "analysis", protected=[collection, config.root, config.path])
+    if not all("!" <= character <= "~" for character in token):
+        # Never echo the value: it is a credential, even when malformed.
+        raise AuthError("hosted_token_invalid", f"{config.hosted.token_env} contains spaces or control characters; set it to the project token alone.")
     if not (collection / "collection.json").is_file():
         raise CraError("collection_missing", f"No collection at {collection}. Run `cra collect` first.", EXIT_INCOMPLETE)
     with tempfile.TemporaryDirectory(prefix="cra-upload-") as work:

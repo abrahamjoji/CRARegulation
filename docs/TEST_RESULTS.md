@@ -2,6 +2,20 @@
 
 For reviewers. Recorded on 6 November 2026 on Kali Linux, x86-64, GCC 16.2.0. No GitHub Actions run, Docker build or customer build is included. Vulnerability counts come from one database snapshot and will change.
 
+## Re-verification after merging main, 10 November 2026
+
+The merge of `main` (#3) had replaced the `scripts/cra_checks.py` and `scripts/cra_validation.py` compatibility aliases with a broken mix of both versions. `scripts/cra_checks.py` raised `NameError` on import, so the sample report crashed and `tests/test_pipeline.py` could not load (244 tests ran instead of 300). The aliases are restored. With hosted tests running for the first time on this host, an out-of-date outage test and a test-order dependency in the integration suite surfaced and were fixed. The hosted client now clears an earlier result before checking the token, and it rejects a malformed token without echoing it.
+
+| Check | Result |
+| --- | --- |
+| `.tools/venv3.11/bin/python -m unittest discover tests` | 303 ran: 289 passed, 14 skipped (opt-in integration) |
+| `.tools/venv3.12/bin/python -m unittest discover tests` | 303 ran: 289 passed, 14 skipped (opt-in integration) |
+| `CRA_INTEGRATION=1 ... -m unittest discover -s tests/integration -t tests -v`, from an empty `reference/out` | 14 ran, 14 passed with real Conan, CMake, Syft, Grype and cosign |
+| README sample report (`scripts/cra_report.py ... --gate`) | Gate passed, exit 0 |
+| Manual: Python `pip inspect` project, directory scan, hosted server and worker | Gate 10 on real advisories; missing directory or symlink 20; hosted result equal to local; bad token 31; server down 32, then gate 20 |
+
+Still not verified here: Docker images and Compose, the GitHub Action and workflows, keyless cosign.
+
 ## Cross-language audit verification
 
 The follow-up audit added Python pip-inspect and language-independent directory collection, output safety, configuration validation and gate consistency checks. Current local verification:

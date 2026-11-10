@@ -469,16 +469,48 @@ class RealServerClient(Base):
         self.assertEqual(self.run_cli("analyze", "--config", config, "--hosted")[0], 31)
         self.assertEqual(self.run_cli("gate", "--result", str(self.ws.analysis_dir))[0], 20)
 
+    def test_token_with_trailing_newline_is_accepted(self):
+        self.start()
+        config = str(self.ws.root / "cra.toml")
+        self.run_cli("collect", "--config", config)
+        code, text = self.run_cli("analyze", "--config", config, "--hosted", token=self.token_a + "\r\n")
+        self.assertEqual(code, 0, text)
+
+    def test_malformed_token_is_auth_failure_without_echo(self):
+        config = str(self.ws.root / "cra.toml")
+        self.ws.edit_config("[analysis]", f'[hosted]\nurl = "http://127.0.0.1:{free_port()}"\n[analysis]')
+        self.run_cli("collect", "--config", config)
+        code, text = self.run_cli("analyze", "--config", config, "--hosted", token="cra_secret value")
+        self.assertEqual(code, 31, text)
+        self.assertIn("hosted_token_invalid", text)
+        self.assertNotIn("secret", text)
+
+    def test_token_problem_still_clears_a_stale_result(self):
+        from cra.common.bundle import write_manifest
+        config = str(self.ws.root / "cra.toml")
+        self.ws.edit_config("[analysis]", f'[hosted]\nurl = "http://127.0.0.1:{free_port()}"\n[analysis]')
+        self.run_cli("collect", "--config", config)
+        (self.ws.analysis_dir).mkdir(parents=True)
+        (self.ws.analysis_dir / "result.json").write_text("{}")
+        write_manifest(self.ws.analysis_dir, kind="analysis")
+        self.assertEqual(self.run_cli("analyze", "--config", config, "--hosted")[0], 31)
+        self.assertFalse((self.ws.analysis_dir / "result.json").exists())
+        self.assertEqual(self.run_cli("gate", "--result", str(self.ws.analysis_dir))[0], 20)
+
     def test_service_outage_is_operational_failure_and_gate_is_not_clean(self):
         hosted_client.BACKOFF_SECONDS, saved = 0, hosted_client.BACKOFF_SECONDS
         self.addCleanup(setattr, hosted_client, "BACKOFF_SECONDS", saved)
         self.ws.edit_config("[analysis]", f'[hosted]\nurl = "http://127.0.0.1:{free_port()}"\n[analysis]')
         config = str(self.ws.root / "cra.toml")
         self.run_cli("collect", "--config", config)
+        # A stale result from an earlier run, inside a recognized CRA analysis bundle.
+        # analyze refuses to clear a folder without a CRA manifest, so a bare file would stop it first.
+        from cra.common.bundle import write_manifest
         (self.ws.analysis_dir).mkdir(parents=True)
         (self.ws.analysis_dir / "result.json").write_text("{}")
+        write_manifest(self.ws.analysis_dir, kind="analysis")
         code, text = self.run_cli("analyze", "--config", config, "--hosted", token=self.token_a)
-        self.assertEqual(code, 32)
+        self.assertEqual(code, 32, text)
         self.assertIn("hosted_unavailable", text)
         self.assertNotIn(self.token_a, text)
         self.assertFalse((self.ws.analysis_dir / "result.json").exists())

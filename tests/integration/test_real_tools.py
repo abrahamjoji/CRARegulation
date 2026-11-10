@@ -26,6 +26,19 @@ OUTPUT = REFERENCE / "out"
 CRA = str(REFERENCE / "cra.toml")
 ANALYSIS = OUTPUT / "cra" / "analysis"
 KEV_URL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+_reference_built = False
+
+
+def build_reference():
+    """Build the reference project from scratch once per test run, whichever class needs it first."""
+    global _reference_built
+    if _reference_built:
+        return
+    shutil.rmtree(REFERENCE / "app" / "build-release-static", ignore_errors=True)
+    shutil.rmtree(REFERENCE / "app" / "build-debug-shared-lz4", ignore_errors=True)
+    subprocess.run([str(REFERENCE / "build_reference.sh")], check=True, stdout=subprocess.DEVNULL)
+    subprocess.run(["curl", "--proto", "=https", "-fsSL", "--max-time", "120", KEV_URL, "-o", str(OUTPUT / "kev.json")], check=True)
+    _reference_built = True
 
 
 @unittest.skipUnless(ENABLED, "set CRA_INTEGRATION=1 to run real external tools")
@@ -34,10 +47,7 @@ class ReferenceEndToEnd(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        shutil.rmtree(REFERENCE / "app" / "build-release-static", ignore_errors=True)
-        shutil.rmtree(REFERENCE / "app" / "build-debug-shared-lz4", ignore_errors=True)
-        subprocess.run([str(REFERENCE / "build_reference.sh")], check=True, stdout=subprocess.DEVNULL)
-        subprocess.run(["curl", "--proto", "=https", "-fsSL", "--max-time", "120", KEV_URL, "-o", str(OUTPUT / "kev.json")], check=True)
+        build_reference()
 
     def test_01_prepare_ran_before_configure_and_reply_exists(self):
         replies = list((REFERENCE / "app/build-release-static/build/Release/.cmake/api/v1/reply").glob("index-*.json"))
@@ -116,6 +126,10 @@ class ReferenceEndToEnd(unittest.TestCase):
 class HostedWithRealScanner(unittest.TestCase):
     """Real uvicorn, real worker, real Grype and the real client over loopback."""
 
+    @classmethod
+    def setUpClass(cls):
+        build_reference()
+
     def test_hosted_result_matches_local_result(self):
         import socket
         import time
@@ -154,8 +168,11 @@ class HostedWithRealScanner(unittest.TestCase):
                 out = root / "hosted-analysis"
                 self.assertEqual(cli.main(["collect", "--config", str(config), "--out", str(root / "collection")]), 0)
                 self.assertEqual(cli.main(["analyze", "--config", str(config), "--hosted", "--collection", str(root / "collection"), "--out", str(out)]), 0)
+                # Compare with a local analysis of the same collection, not another test's output.
+                local_out = root / "local-analysis"
+                self.assertEqual(cli.main(["analyze", "--config", str(config), "--collection", str(root / "collection"), "--out", str(local_out)]), 0)
                 hosted = read_json(out / "result.json")
-                local = read_json(ANALYSIS / "result.json")
+                local = read_json(local_out / "result.json")
                 self.assertEqual(hosted["scan_status"], "complete")
                 self.assertEqual({f["id"] for f in hosted["findings"]}, {f["id"] for f in local["findings"]})
                 self.assertEqual(hosted["vulnerability_data"]["grype"]["built"], local["vulnerability_data"]["grype"]["built"])
