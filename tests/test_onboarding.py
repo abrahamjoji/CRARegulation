@@ -46,7 +46,7 @@ class Init(unittest.TestCase):
         self.run_init('--with-readiness','--author','Security reviewer')
         config,warnings=preflight(self.root/'cra.toml')
         self.assertEqual(config.product_name,'widget')
-        self.assertEqual((self.root/'.gitignore').read_text(),'.cra/\ndata/\n.cra-init.lock\n')
+        self.assertEqual((self.root/'.gitignore').read_text(),'/.cra/\n/data/\n/.cra-init.lock\n')
         import jsonschema
         for filename,schema in [('cra.toml','config'),('policy.toml','policy'),('records/components.json','component-records')]:
             value=tomllib.loads((self.root/filename).read_text()) if filename.endswith('.toml') else read_json(self.root/filename)
@@ -362,6 +362,75 @@ class Init(unittest.TestCase):
         # A genuinely new version must still prompt manual reconciliation.
         self.write('config0.spdx.json','{"spdxVersion":"SPDX-2.3","packages":[{"name":"variant-sdk","versionInfo":"3"}]}')
         with self.assertRaises(ConfigError):self.run_init('--force')
+
+    def _graph_with_folders(self,name,build_folder,recipe_folder=None):
+        doc=json.loads((helpers.FIXTURES/'release-static.graph.json').read_text())
+        node=doc['graph']['nodes']['0']
+        node['build_folder']=str(build_folder);node['generators_folder']=str(build_folder/'generators')
+        if recipe_folder: node['recipe_folder']=str(recipe_folder)
+        self.write(name,json.dumps(doc))
+
+    def test_conan_graph_pairs_with_cmake_tree_in_another_directory(self):
+        # The usual layout: graph captured to out/, CMake tree under the Conan output folder.
+        tree=self.root/'app/build-rel/build/Release'
+        self.write('app/conanfile.py','# recipe, never executed by init\n')
+        self._graph_with_folders('out/rel.graph.json',tree,self.root/'app')
+        self.write('app/build-rel/build/Release/CMakeCache.txt',
+                   f'CMAKE_BUILD_TYPE:STRING=Release\nCMAKE_CACHEFILE_DIR:INTERNAL={tree}\nCMAKE_TOOLCHAIN_FILE:FILEPATH={tree}/generators/conan_toolchain.cmake\n')
+        config=tomllib.loads(self.run_init('--dry-run')['files']['cra.toml'])
+        self.assertEqual(len(config['configurations']),1)
+        cfg=config['configurations'][0]
+        self.assertEqual((cfg['conan_graph'],cfg['cmake_build_dir'],cfg['conan_manifest']),
+                         ('out/rel.graph.json','app/build-rel/build/Release','app/conanfile.py'))
+
+    def test_unrelated_cmake_tree_is_not_paired_with_conan_graph(self):
+        self._graph_with_folders('out/rel.graph.json',self.root/'elsewhere')
+        self.write('other/CMakeCache.txt',f'CMAKE_CACHEFILE_DIR:INTERNAL={self.root}/other\n')
+        config=tomllib.loads(self.run_init('--dry-run')['files']['cra.toml'])
+        self.assertEqual(len(config['configurations']),2)
+        self.assertFalse(any('conan_graph' in c and 'cmake_build_dir' in c for c in config['configurations']))
+
+    def test_static_archives_are_not_selected_as_artifacts(self):
+        from cra.onboard.context import Context
+        from cra.onboard.detectors.cmake import detect
+        self.write('build/CMakeCache.txt','CMAKE_BUILD_TYPE:STRING=Release')
+        self.write('build/app','binary');self.write('build/libcore.a','archive')
+        self.write('build/.cmake/api/v1/reply/index-test.json','{}')
+        files={'codemodel':{'configurations':[{'name':'Release','targets':[{'jsonFile':'app.json'},{'jsonFile':'core.json'}]}]},
+               'targets':{'app.json':{'type':'EXECUTABLE','artifacts':[{'path':'app'}]},
+                          'core.json':{'type':'STATIC_LIBRARY','artifacts':[{'path':'libcore.a'}]}}}
+        ctx=Context(self.root,{})
+        with patch('cra.onboard.detectors.cmake.cmake.read_reply',return_value=files):detect(ctx)
+        self.assertEqual([a['path'] for a in ctx.artifacts],['build/app'])
+
+    def test_cpe_check_limit_reached_means_advisories_exist(self):
+        # Real Grype 0.121.2 exits 1 with this message when a CPE has more records than --limit.
+        from cra.onboard.init import cpe_check
+        from types import SimpleNamespace
+        def run(argv,**kwargs):
+            Path(kwargs['stdout_path']).write_text('[]')
+            return SimpleNamespace(returncode=1,missing=False,timed_out=False,stderr='ERROR unable to fetch CPE records: query limit reached')
+        with patch('cra.onboard.init.run_tool',side_effect=run):
+            self.assertEqual(cpe_check('cpe:2.3:a:zlib:zlib:1.2.13:*:*:*:*:*:*:*','grype'),'has_advisories')
+        def broken(argv,**kwargs):
+            return SimpleNamespace(returncode=1,missing=False,timed_out=False,stderr='database not found')
+        with patch('cra.onboard.init.run_tool',side_effect=broken):
+            self.assertEqual(cpe_check('cpe:2.3:a:zlib:zlib:1.2.13:*:*:*:*:*:*:*','grype'),'unavailable')
+
+    def test_provenance_is_project_relative_and_per_record(self):
+        self.write('build/graph.json',(helpers.FIXTURES/'release-static.graph.json').read_text())
+        self.write('package-lock.json','{}')
+        result=self.run_init('--dry-run')
+        self.assertNotIn(str(self.root),result['files']['cra.toml'])
+        self.assertNotIn(str(self.root),result['files']['records/components.json'])
+        for row in json.loads(result['files']['records/components.json'])['components']:
+            self.assertEqual(list(row['provenance']['input_hashes']),['build/graph.json'])
+
+    def test_nested_data_folder_is_scanned_but_root_data_is_not(self):
+        self.write('data/package-lock.json','{}')
+        self.write('service/data/package-lock.json','{}')
+        config=tomllib.loads(self.run_init('--dry-run')['files']['cra.toml'])
+        self.assertEqual([d['path'] for d in config['directories']],['service/data'])
 
 
 if __name__=='__main__':unittest.main()

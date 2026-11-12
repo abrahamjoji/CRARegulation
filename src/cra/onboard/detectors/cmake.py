@@ -3,12 +3,26 @@ import re
 from pathlib import Path
 from ...collector import cmake
 
+# Static archives (.a) are not inspectable by the collector, so selecting them would
+# only make every scan incomplete. Their contents reach the executables that link them.
+INSPECTABLE = ('EXECUTABLE', 'SHARED_LIBRARY', 'MODULE_LIBRARY')
+
+
+def _paired_conan(ctx, cache):
+    """The Conan configuration whose install produced this tree, by the folders both recorded."""
+    recorded = set()
+    if cache.get('CMAKE_CACHEFILE_DIR'): recorded.add(cache['CMAKE_CACHEFILE_DIR'].rstrip('/'))
+    if cache.get('CMAKE_TOOLCHAIN_FILE'): recorded.add(str(Path(cache['CMAKE_TOOLCHAIN_FILE']).parent).rstrip('/'))
+    matches = [c for c in ctx.configurations if c['id'] in ctx.conan_folders and not c.get('cmake_build_dir')
+               and ctx.conan_folders[c['id']] & recorded]
+    return matches[0] if len(matches) == 1 else None
+
 
 def detect(ctx):
     for path in ctx.paths:
         if path.name != 'CMakeCache.txt': continue
         cache = dict(re.findall(r'(?m)^([^#/:\n][^:\n]*):[^=\n]*=(.*)$', ctx.read(path)))
-        config = ctx.config(path.parent)
+        config = _paired_conan(ctx, cache) or ctx.config(path.parent)
         config['cmake_build_dir'] = ctx.rel(path.parent)
         if cache.get('CMAKE_BUILD_TYPE'): config['cmake_config'] = cache['CMAKE_BUILD_TYPE']
         ctx.detected.append(f'CMake tree: {ctx.rel(path.parent)}')
@@ -52,7 +66,7 @@ def detect(ctx):
                 ctx.configurations.append(selected)
             for target in variant.get('targets') or []:
                 data = files['targets'].get(target.get('jsonFile'), {})
-                if data.get('type') not in ('EXECUTABLE', 'STATIC_LIBRARY', 'SHARED_LIBRARY', 'MODULE_LIBRARY'): continue
+                if data.get('type') not in INSPECTABLE: continue
                 for artifact in data.get('artifacts') or []:
                     candidate = path.parent / artifact['path']
                     if candidate.is_file() and not candidate.is_symlink() and candidate.resolve().is_relative_to(ctx.root):

@@ -1,4 +1,5 @@
 """Actual Conan 2 graph capture, plus explicit limited Conan 1 fallback."""
+from pathlib import Path
 from ...collector.conan import collect_graph
 
 
@@ -16,6 +17,18 @@ def detect(ctx):
             config['conan_graph'] = ctx.rel(path)
             ctx.detected.append(f'Conan 2 graph: {ctx.rel(path)}')
             root = (doc['graph'].get('nodes') or {}).get('0', {})
+            # Folders Conan recorded for this install; the CMake detector pairs a build tree only
+            # when its own cache names the same folders. String comparison, no filesystem lookup.
+            folders = {str(root[key]).rstrip('/') for key in ('build_folder', 'generators_folder') if isinstance(root.get(key), str) and root[key]}
+            if folders: ctx.conan_folders[config['id']] = folders
+            recipe = root.get('recipe_folder')
+            if isinstance(recipe, str) and recipe and not config.get('conan_manifest'):
+                for name in ('conanfile.py', 'conanfile.txt'):
+                    candidate = Path(recipe) / name
+                    if candidate.is_file() and not candidate.is_symlink() and candidate.resolve().is_relative_to(ctx.root):
+                        ctx.read(candidate)
+                        config['conan_manifest'] = ctx.rel(candidate)
+                        break
             settings = root.get('settings') or {}
             if settings.get('os'): ctx.targets.append({'os':settings['os'], 'version':settings.get('os.version'), 'source':str(path)})
             for observation in parsed['observations']:

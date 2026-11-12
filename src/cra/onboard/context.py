@@ -6,7 +6,9 @@ from pathlib import Path
 from ..common.errors import ConfigError
 from ..common.safety import parse_json_bytes
 
-SKIP = {'.git', '.cra', '.tools', '.venv', 'venv', 'node_modules', 'data', '__pycache__', '.tox', '.mypy_cache'}
+SKIP = {'.git', '.cra', '.tools', '.venv', 'venv', 'node_modules', '__pycache__', '.tox', '.mypy_cache'}
+# Advisory data written by cra data update; only at the project root, not source folders named data.
+ROOT_ONLY_SKIP = {'data'}
 MAX_FILES = 20000
 MAX_INPUT_BYTES = 32 * 1024 * 1024
 
@@ -26,6 +28,7 @@ class Context:
         self.targets = []
         self.identity_sources = {}
         self.sdk_roots = []
+        self.conan_folders = {}
         self.total = 0
         self.paths = self.walk(self.root)
 
@@ -34,7 +37,7 @@ class Context:
         def error(exc): raise ConfigError('init_discovery', str(exc))
         for current, dirs, names in os.walk(root, followlinks=False, onerror=error):
             current = Path(current)
-            dirs[:] = sorted(d for d in dirs if d not in SKIP and not (current/d).is_symlink() and len((current/d).relative_to(root).parts) <= depth)
+            dirs[:] = sorted(d for d in dirs if d not in SKIP and not (current == root and d in ROOT_ONLY_SKIP) and not (current/d).is_symlink() and len((current/d).relative_to(root).parts) <= depth)
             for name in sorted(names):
                 path = current / name
                 if path.is_symlink(): continue
