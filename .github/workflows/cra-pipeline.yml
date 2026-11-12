@@ -65,7 +65,7 @@ jobs:
             --sample --date "$DEMO_DATE" --gate
 
       - name: Keep the demo report
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cra-demo-report-${{ github.sha }}
           path: poc/legacy/demo/
@@ -146,7 +146,7 @@ jobs:
 
       - name: Retain technical evidence as a CI artifact
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cra-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: poc/legacy/out/
@@ -154,7 +154,7 @@ jobs:
           if-no-files-found: error
 
       - name: Prepare SBOM for isolated monitoring upload
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: monitoring-sbom-${{ github.run_id }}-${{ github.run_attempt }}
           path: poc/legacy/out/sbom.full.cdx.json
