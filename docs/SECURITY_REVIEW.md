@@ -50,7 +50,7 @@ Before real deployment: select reviewed scanner releases, pin tool versions and 
 
 ### High — no binding between product, firmware, SBOM and scan
 
-Locations: `firmware/conanfile.txt`, `build()` in `scripts/cra_report.py`, and the workflow.
+Locations: `firmware/conanfile.txt`, `build()` in `poc/legacy/scripts/cra_report.py`, and the workflow.
 
 A genuine scan of an old or different product can be supplied alongside the current SBOM and still pass structural checks. Scanning a dependency declaration does not establish what was linked into the shipped image, which OS/BSP is installed, or what vendor binaries contain. Empty matches can legitimately mean clean, so shape validation alone cannot detect an unrelated scan.
 
@@ -84,7 +84,7 @@ Before real deployment: classify evidence, separate public disclosure records fr
 
 ### Medium — SBOM merge can lose information
 
-Location: `scripts/merge_sbom.py`.
+Location: `poc/legacy/scripts/merge_sbom.py`.
 
 The helper merges only top-level components, keeps the first duplicate, and does not reconcile dependency graphs, nested components, conflicting versions/identifiers or later security metadata. Incomplete identity and dependency data can reduce vulnerability matching accuracy.
 

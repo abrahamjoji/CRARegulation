@@ -6,7 +6,7 @@ an OpenVEX triage file and the CISA KEV catalogue into one HTML report
 and one JSON summary for the technical file. Standard library only.
 
 Usage:
-  python scripts/cra_report.py --product product.json \
+  python poc/legacy/scripts/cra_report.py --product product.json \
       --sbom out/sbom.cdx.json --manual sbom/manual-components.cdx.json \
       --scan out/scan.grype.json --vex vex/demo200.openvex.json \
       --risk risk/risk-assessment.json --register vuln/register.json \

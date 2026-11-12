@@ -557,7 +557,7 @@ class ReportSafety(Base):
 
 class Readiness(Base):
     def test_existing_records_feed_release_mode_without_a_percentage(self):
-        root = helpers.REPO
+        root = helpers.REPO / "poc" / "legacy"
         self.ws.edit_config('kev = "kev.json"', f'kev = "kev.json"\nproduct_file = "{root}/product.json"\nrisk_file = "{root}/risk/risk-assessment.json"\nregister_file = "{root}/vuln/register.json"')
         (self.ws.root / "policy.toml").write_text((self.ws.root / "policy.toml").read_text() + "require_readiness = true\n")
         result = self.ws.analyze()
@@ -576,7 +576,7 @@ class Readiness(Base):
             {"id": "VR-1", "type": "vulnerability", "vulnerability": "CVE-2000-7", "source": "researcher", "first_seen": "2026-01-01T00:00:00Z",
              "actively_exploited_in_product": True, "aware_at": "2026-10-01T00:00:00Z", "purl": ZLIB,
              "release_decision": {"decision": "fix_before_release", "severity": "High", "exploitability": "x", "impact": "x", "rationale": "x", "decided_by": "x", "date": "2026-01-01"}}]}))
-        root = helpers.REPO
+        root = helpers.REPO / "poc" / "legacy"
         self.ws.edit_config('kev = "kev.json"', f'kev = "kev.json"\nproduct_file = "{root}/product.json"\nregister_file = "register.json"')
         result = self.ws.analyze()
         finding = next(item for item in result["findings"] if item["vulnerability"]["id"] == "CVE-2000-7")

@@ -10,10 +10,15 @@ out
 output
 dist
 build
-reference/out
-reference/app/build-*
+poc/reference/out
+poc/reference/app/build-*
 .env
 .env.*
 **/.ssh
 **/*.pem
 **/*.key
+
+# Runtime images need product code only, never PoCs, test data or benchmarks.
+poc
+tests
+benchmark

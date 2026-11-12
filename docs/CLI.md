@@ -83,7 +83,7 @@ If a result has both incomplete reasons and policy violations, the outcome is `i
 
 ## Configuration: `cra.toml`
 
-Schema: [`src/cra/schemas/config.schema.json`](../src/cra/schemas/config.schema.json). Unknown keys are errors. Paths resolve against the config file. [`reference/cra.toml`](../reference/cra.toml) is a full example.
+Schema: [`src/cra/schemas/config.schema.json`](../src/cra/schemas/config.schema.json). Unknown keys are errors. Paths resolve against the config file. [`poc/reference/cra.toml`](../poc/reference/cra.toml) is a full example.
 
 | Section | Keys |
 | --- | --- |
@@ -105,7 +105,7 @@ An image `reference` must be pinned with `@sha256:`. A tag is refused. Registry 
 
 ## Policy
 
-Schema: [`policy.schema.json`](../src/cra/schemas/policy.schema.json). Example: [`reference/policy.toml`](../reference/policy.toml).
+Schema: [`policy.schema.json`](../src/cra/schemas/policy.schema.json). Example: [`poc/reference/policy.toml`](../poc/reference/policy.toml).
 
 | Key | Meaning | Default |
 | --- | --- | --- |
@@ -132,7 +132,7 @@ Findings are never removed to satisfy a gate. A low-confidence or build-only fin
 
 ## Component records
 
-For what tools cannot identify: vendored source, vendor SDKs, patched or ambiguous components. Schema: [`component-records.schema.json`](../src/cra/schemas/component-records.schema.json). Example: [`reference/records/vendor-components.json`](../reference/records/vendor-components.json).
+For what tools cannot identify: vendored source, vendor SDKs, patched or ambiguous components. Schema: [`component-records.schema.json`](../src/cra/schemas/component-records.schema.json). Example: [`poc/reference/records/vendor-components.json`](../poc/reference/records/vendor-components.json).
 
 A record is a claim and is labelled as one. Useful fields:
 

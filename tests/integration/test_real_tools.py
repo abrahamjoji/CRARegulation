@@ -21,7 +21,7 @@ from cra.engine import measure  # noqa: E402
 from cra.gate import evaluate_gate  # noqa: E402
 
 ENABLED = os.environ.get("CRA_INTEGRATION") == "1"
-REFERENCE = REPO / "reference"
+REFERENCE = REPO / "poc" / "reference"
 OUTPUT = REFERENCE / "out"
 CRA = str(REFERENCE / "cra.toml")
 ANALYSIS = OUTPUT / "cra" / "analysis"
@@ -112,7 +112,7 @@ class ReferenceEndToEnd(unittest.TestCase):
             (root / "vex.json").write_text(json.dumps({"@context": "https://openvex.dev/ns/v0.2.0", "@id": "https://example.invalid/test", "author": "Reference Security Team (fictional)", "timestamp": "2026-11-01T00:00:00Z", "version": 1, "statements": statements}))
             config = (REFERENCE / "cra.toml").read_text().replace('vex = ["vex/reference.openvex.json"]', f'vex = ["{root}/vex.json"]')
             temp_config = REFERENCE / "out" / "cra-triaged.toml"
-            temp_config.write_text(config.replace('roots = [".", "out"]', 'roots = [".."]').replace('"app/', '"../app/').replace('"out/', '"./').replace('"records/', '"../records/').replace('"../.tools/', '"../../.tools/').replace('policy = "policy.toml"', 'policy = "../policy.toml"'))
+            temp_config.write_text(config.replace('roots = [".", "out"]', 'roots = [".."]').replace('"app/', '"../app/').replace('"out/', '"./').replace('"records/', '"../records/').replace('"../../.tools/', '"../../../.tools/').replace('policy = "policy.toml"', 'policy = "../policy.toml"'))
             out = root / "analysis"
             self.assertEqual(cli.main(["analyze", "--config", str(temp_config), "--collection", str(OUTPUT / "cra" / "collection"), "--out", str(out)]), 0)
             record = evaluate_gate(out, "build")

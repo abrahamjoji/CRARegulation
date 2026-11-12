@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refresh deterministic fixtures from a real reference build (run reference/build_reference.sh first).
+"""Refresh deterministic fixtures from a real reference build (run poc/reference/build_reference.sh first).
 
 Machine paths are rewritten to /build and /conan. Scanner output is trimmed, and a
 tiny labelled false match is added by the tests, not here. Nothing else is edited.
@@ -12,7 +12,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 OUT = Path(__file__).resolve().parent / "reference"
-REF = REPO / "reference"
+REF = REPO / "poc" / "reference"
 CONAN = REPO / ".cra" / "conan-home"
 
 

@@ -2,7 +2,7 @@
 # Build the reference customer project with real Conan and CMake, in the order CI would use.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
-repo="$(cd "$here/.." && pwd)"
+repo="$(cd "$here/../.." && pwd)"
 export PATH="$repo/.venv/bin:$PATH"
 export CONAN_HOME="${CONAN_HOME:-$repo/.cra/conan-home}"
 cra() { PYTHONPATH="$repo/src" python3 -m cra.cli_main "$@"; }

@@ -1,5 +1,5 @@
 # Multi-stage reference build. Built and run manually (docs/TEST_RESULTS.md); routine tests use
-# reference/tools/build_fixture_images.py, which writes OCI archives of the same
+# poc/reference/tools/build_fixture_images.py, which writes OCI archives of the same
 # structure without a Docker daemon. Pin both images by digest before real use.
 FROM debian:bookworm-slim AS builder
 # make: Conan builds missing dependencies with CMake's default Makefile generator.

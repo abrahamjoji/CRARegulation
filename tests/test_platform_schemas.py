@@ -39,7 +39,7 @@ class Schemas(unittest.TestCase):
         self.check("gate", evaluate_gate(self.ws.root / "nothing"))
 
     def test_customer_files_match_schemas(self):
-        repo = helpers.REPO / "reference"
+        repo = helpers.REPO / "poc" / "reference"
         self.check("config", tomllib.loads((repo / "cra.toml").read_text()))
         self.check("policy", tomllib.loads((repo / "policy.toml").read_text()))
         self.check("component-records", read_json(repo / "records" / "vendor-components.json"))

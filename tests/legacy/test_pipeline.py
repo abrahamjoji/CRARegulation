@@ -8,7 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parents[2]
+ROOT = REPO / "poc" / "legacy"
 SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import cra_checks as checks  # noqa: E402
@@ -544,7 +545,7 @@ class Presentation(TempDirTest):
 class Workflow(unittest.TestCase):
     def test_syft_output_version_matches_manual_sbom(self):
         import re
-        workflow = (ROOT / ".github/workflows/cra-pipeline.yml").read_text(encoding="utf-8")
+        workflow = (REPO / ".github/workflows/cra-pipeline.yml").read_text(encoding="utf-8")
         generation = next(line.strip() for line in workflow.splitlines() if "run: syft scan" in line)
         output = re.search(r"-o cyclonedx-json@([0-9]+\.[0-9]+)=out/sbom\.cdx\.json", generation)
         self.assertIsNotNone(output, "Syft output schema must be explicit, not the moving default")
@@ -553,7 +554,7 @@ class Workflow(unittest.TestCase):
 
 
     def test_tools_are_pinned(self):
-        text = (ROOT / ".github/workflows/cra-pipeline.yml").read_text(encoding="utf-8")
+        text = (REPO / ".github/workflows/cra-pipeline.yml").read_text(encoding="utf-8")
         self.assertNotIn("/main/install.sh", text)
         self.assertNotRegex(text, r"uses: [^\s]+@v\d")
         self.assertIn("sha256sum -c", text)

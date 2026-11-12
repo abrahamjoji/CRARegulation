@@ -1,4 +1,4 @@
-name: CRA pipeline
+name: CRA proof-of-concept pipeline
 
 on:
   push:
@@ -32,6 +32,9 @@ jobs:
   # Tests the scripts, then builds the labelled demo report from the curated sample data.
   demo:
     runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: poc/legacy
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -43,6 +46,7 @@ jobs:
           python-version: "3.12"
 
       - name: Test the pipeline scripts
+        working-directory: ${{ github.workspace }}
         run: python -m unittest discover tests
 
       - name: Build the demo report from sample data
@@ -64,12 +68,15 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cra-demo-report-${{ github.sha }}
-          path: demo/
+          path: poc/legacy/demo/
           retention-days: 90
 
   cra:
     needs: demo
     runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: poc/legacy
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -128,7 +135,7 @@ jobs:
             --out out/cra-report.html --summary out/cra-summary.json "$GATE"
 
       - name: Snapshot inputs, linked evidence and tool provenance
-        if: ${{ !cancelled() && hashFiles('out/cra-summary.json') != '' }}
+        if: ${{ !cancelled() && hashFiles('poc/legacy/out/cra-summary.json') != '' }}
         run: |
           python scripts/cra_evidence.py --product "$PRODUCT_FILE" \
             --out out/evidence --revision "$GITHUB_SHA" \
@@ -142,7 +149,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cra-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: out/
+          path: poc/legacy/out/
           retention-days: 90
           if-no-files-found: error
 
@@ -150,7 +157,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: monitoring-sbom-${{ github.run_id }}-${{ github.run_attempt }}
-          path: out/sbom.full.cdx.json
+          path: poc/legacy/out/sbom.full.cdx.json
           retention-days: 1
           if-no-files-found: error
 

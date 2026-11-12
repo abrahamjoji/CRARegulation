@@ -44,7 +44,7 @@ See [PROJECT_AUDIT.md](PROJECT_AUDIT.md) for the cross-language review, correcti
 | Exported OCI image archive, real Syft | Tested | Images are synthetic: real package records, not built from the Dockerfile |
 | Pinned registry image, real Syft, no daemon | Tested | busybox by digest, including index digest handling |
 | Docker-save archive format | Tested | `docker save` of the reference final and builder images, collected in the collector image |
-| Real multi-stage Docker build | Tested | `reference/image/Dockerfile` built and run. Needed `make`, `CMAKE_BUILD_TYPE` and the image's compiler version |
+| Real multi-stage Docker build | Tested | `poc/reference/image/Dockerfile` built and run. Needed `make`, `CMAKE_BUILD_TYPE` and the image's compiler version |
 | Customer component records | Tested | Own parser; no external tool involved |
 | Reconciliation and conflicts | Tested | Reference matches the hand-written expectation. Conflict cases use constructed inputs |
 | Grype adapter | Tested | Grype 0.121.2, including missing database |

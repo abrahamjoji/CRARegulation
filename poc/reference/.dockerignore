@@ -1,0 +1,4 @@
+# Build context for poc/reference/image/Dockerfile. Host build output holds host paths
+# and caches; the image builds from source.
+app/build*
+out

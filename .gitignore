@@ -9,7 +9,7 @@ __pycache__/
 build/
 dist/
 *.egg-info/
-reference/app/build*/
-reference/out/
-reference/app/CMakeUserPresets.json
+poc/reference/app/build*/
+poc/reference/out/
+poc/reference/app/CMakeUserPresets.json
 deploy/dev-kev/kev.json

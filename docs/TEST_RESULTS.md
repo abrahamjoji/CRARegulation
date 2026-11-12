@@ -10,8 +10,8 @@ The merge of `main` (#3) had replaced the `scripts/cra_checks.py` and `scripts/c
 | --- | --- |
 | `.tools/venv3.11/bin/python -m unittest discover tests` | 303 ran: 289 passed, 14 skipped (opt-in integration) |
 | `.tools/venv3.12/bin/python -m unittest discover tests` | 303 ran: 289 passed, 14 skipped (opt-in integration) |
-| `CRA_INTEGRATION=1 ... -m unittest discover -s tests/integration -t tests -v`, from an empty `reference/out` | 14 ran, 14 passed with real Conan, CMake, Syft, Grype and cosign |
-| README sample report (`scripts/cra_report.py ... --gate`) | Gate passed, exit 0 |
+| `CRA_INTEGRATION=1 ... -m unittest discover -s tests/integration -t tests -v`, from an empty `poc/reference/out` | 14 ran, 14 passed with real Conan, CMake, Syft, Grype and cosign |
+| README sample report (`poc/legacy/scripts/cra_report.py ... --gate`) | Gate passed, exit 0 |
 | Manual: Python `pip inspect` project, directory scan, hosted server and worker | Gate 10 on real advisories; missing directory or symlink 20; hosted result equal to local; bad token 31; server down 32, then gate 20 |
 
 Still not verified here: the GitHub Action and workflows on GitHub, keyless cosign.
@@ -30,7 +30,7 @@ Docker 28.5.2 and Compose 2.40.3 on the same host. First run of the images and t
 | Bad token / API stopped / API restarted | 31 / 32 then gate 20 / same job returned for the same upload |
 | Worker isolation | No egress (IP and DNS both fail); read-only root and database mount; no capabilities. API published on 127.0.0.1 only |
 | The shared action's `docker run` flags (`--network none`, host uid) | Directory scan with Syft and Python collection both complete |
-| `reference/image/Dockerfile` | Did not build as committed. Fixed: `make` for Conan's dependency builds, `-DCMAKE_BUILD_TYPE=Release`, and the image's GCC 12 recorded instead of the host's 16. Built and ran |
+| `poc/reference/image/Dockerfile` | Did not build as committed. Fixed: `make` for Conan's dependency builds, `-DCMAKE_BUILD_TYPE=Release`, and the image's GCC 12 recorded instead of the host's 16. Built and ran |
 | `docker save` archives of that image, `format = "docker-archive"` | 279 components, 1079 findings: 209 shipped (final image), 870 build-only (builder image); gate 10. A missing archive reported incomplete |
 
 Observations: the images write as uid 10001, so a mounted workspace must be writable by that user, or the container must run with `--user` as the shared action does. The `local` image then cannot read the database volume, which is private to uid 10001. Image scans see Debian packages, not the statically linked Conan zlib inside the binary; that comes from the Conan and CMake evidence.

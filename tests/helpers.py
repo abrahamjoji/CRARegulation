@@ -18,7 +18,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 FIXTURES = REPO / "tests" / "fixtures" / "reference"
-EXPECTED = REPO / "reference" / "expected" / "inventory.json"
+EXPECTED = REPO / "poc" / "reference" / "expected" / "inventory.json"
 
 FAKE_SYFT = r'''#!/usr/bin/env python3
 import json, sys, time
@@ -124,7 +124,7 @@ def make_elf(needed=(), extra=b"", symtab=True, soname=""):
 
 
 def load_image_builder():
-    spec = importlib.util.spec_from_file_location("build_fixture_images", REPO / "reference" / "tools" / "build_fixture_images.py")
+    spec = importlib.util.spec_from_file_location("build_fixture_images", REPO / "poc" / "reference" / "tools" / "build_fixture_images.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -218,7 +218,7 @@ class Workspace:
     def _build(self):
         root = self.root
         (root / "app").mkdir()
-        shutil.copy(REPO / "reference" / "app" / "conanfile.py", root / "app" / "conanfile.py")
+        shutil.copy(REPO / "poc" / "reference" / "app" / "conanfile.py", root / "app" / "conanfile.py")
         for name, cmake_type in (("release-static", "Release"), ("debug-shared-lz4", "Debug")):
             (root / f"{name}.graph.json").write_text(self._rewrite((FIXTURES / f"{name}.graph.json").read_text()))
             tree = root / "app" / f"build-{name}" / "build" / cmake_type
@@ -233,7 +233,7 @@ class Workspace:
         builder = load_image_builder()
         builder.build(root / "reference-final.oci.tar", {"etc/os-release": b"ID=debian\n"}, "final")
         builder.build(root / "reference-builder.oci.tar", {"etc/os-release": b"ID=debian\n"}, "builder")
-        shutil.copy(REPO / "reference" / "records" / "vendor-components.json", root / "vendor-components.json")
+        shutil.copy(REPO / "poc" / "reference" / "records" / "vendor-components.json", root / "vendor-components.json")
         tools = root / "tools"
         tools.mkdir()
         for name, body in (("syft", FAKE_SYFT), ("grype", FAKE_GRYPE)):

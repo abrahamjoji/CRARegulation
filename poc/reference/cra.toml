@@ -55,8 +55,8 @@ format = "oci-archive"
 records = ["records/vendor-components.json"]
 
 [tools]
-syft = "../.tools/syft"
-grype = "../.tools/grype"
+syft = "../../.tools/syft"
+grype = "../../.tools/grype"
 timeout_seconds = 600
 
 [analysis]

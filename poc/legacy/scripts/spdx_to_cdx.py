@@ -5,7 +5,7 @@ Yocto's create-spdx writes one JSON document per recipe and Zephyr's west spdx
 writes several tag-value documents, so inputs can be files or directories.
 Packages are merged across documents. Relationships are not converted.
 
-Usage: python scripts/spdx_to_cdx.py build/spdx --name my-image -o out/sbom.cdx.json
+Usage: python poc/legacy/scripts/spdx_to_cdx.py build/spdx --name my-image -o out/sbom.cdx.json
 """
 import argparse
 import json
