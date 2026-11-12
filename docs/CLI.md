@@ -2,6 +2,10 @@
 
 For engineers adding the tool to a Linux CI build. Python, C, C++ and generic directory/image evidence use the same collect/analyze/gate path; see [language support](LANGUAGE_SUPPORT.md). Conan and CMake are optional.
 
+## Generate your config
+
+Start with `cra init --dry-run` in the product root, then review and write the proposed config. Use `cra validate` before collection and `cra data update` to explicitly refresh advisory inputs. See [generation, detectors and merge rules](INITIALIZATION.md) for the complete reference.
+
 ## Order of operations
 
 ```bash
@@ -93,7 +97,7 @@ Schema: [`src/cra/schemas/config.schema.json`](../src/cra/schemas/config.schema.
 | `[[images]]` | `id`, `role` (`final` or `build-stage`), one of `archive` or `reference`, `format`, `expected_digest`, `required` |
 | `[[artifacts]]` | `id`, `path`, `configuration`, `shipped`, `required` |
 | `[components]` | `records`: component record files |
-| `[tools]` | `syft`, `grype`, `timeout_seconds`, `allow_unverified_versions`, `add_generated_cpes`, `env_passthrough` |
+| `[tools]` | `syft`, `grype`, `timeout_seconds`, `allow_unverified_versions`, `add_generated_cpes`, `env_passthrough`, `cpe_mappings`, `test_frameworks`, `test_targets` |
 | `[analysis]` | `policy`, `vex`, `kev`, `product_file`, `risk_file`, `register_file` |
 | `[hosted]` | `url`, `token_env`, `poll_seconds`, `timeout_seconds` |
 

@@ -1,0 +1,12 @@
+{
+  "schema_version": "cra.test-frameworks/1",
+  "packages": [
+    "gtest",
+    "gmock",
+    "googletest",
+    "catch2",
+    "doctest",
+    "boost-ext-ut",
+    "cpputest"
+  ]
+}

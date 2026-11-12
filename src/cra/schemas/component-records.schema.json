@@ -1,3 +1,121 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"cra.component-records/1","title":"Customer-supplied component records","type":"object","required":["schema_version","components"],"additionalProperties":false,
-"properties":{"schema_version":{"const":"cra.component-records/1"},"components":{"type":"array","items":{"type":"object","required":["name"],"additionalProperties":false,
-"properties":{"name":{"type":"string"},"version":{"type":"string"},"purl":{"type":"string","pattern":"^pkg:"},"cpes":{"type":"array","items":{"type":"string","pattern":"^cpe:2\\.3:"}},"supplier":{"type":"string"},"license":{"type":"string"},"scope":{"enum":["runtime","build_tool","test","unknown"]},"linkage":{"type":"string"},"shipped":{"type":"boolean"},"configurations":{"type":"array","items":{"type":"string"}},"source_paths":{"type":"array","items":{"type":"string"}},"patched":{"type":"array","items":{"type":"object","required":["vulnerability"],"properties":{"vulnerability":{"type":"string"},"evidence":{"type":"string"}}}},"candidates":{"type":"array","items":{"type":"object"}},"note":{"type":"string"},"reviewed_by":{"type":"string"}}}}}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cra.component-records/1",
+  "title": "Customer-supplied component records",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "components"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "cra.component-records/1"
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "purl": {
+            "type": "string",
+            "pattern": "^pkg:"
+          },
+          "cpes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^cpe:2\\.3:"
+            }
+          },
+          "supplier": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "runtime",
+              "build_tool",
+              "test",
+              "unknown"
+            ]
+          },
+          "linkage": {
+            "type": "string"
+          },
+          "shipped": {
+            "type": "boolean"
+          },
+          "configurations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "patched": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "vulnerability"
+              ],
+              "properties": {
+                "vulnerability": {
+                  "type": "string"
+                },
+                "evidence": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "note": {
+            "type": "string"
+          },
+          "reviewed_by": {
+            "type": "string"
+          },
+          "generated": {
+            "type": "boolean"
+          },
+          "provenance": {
+            "type": "object"
+          },
+          "patch_builds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

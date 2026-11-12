@@ -1,0 +1,40 @@
+{
+  "schema_version": "cra.policy/1",
+  "version": "default",
+  "vex": {
+    "trusted_authors": []
+  },
+  "freshness": {
+    "max_vulnerability_data_age_hours": 168,
+    "max_kev_age_hours": 168,
+    "kev_required": true
+  },
+  "triage": {
+    "max_investigation_days": 14
+  },
+  "build": {
+    "block_severities": [
+      "critical",
+      "high"
+    ],
+    "block_scope": "shipped_or_unknown",
+    "block_kev_untriaged": true,
+    "block_vex_problems": true,
+    "minimum_confidence": "medium",
+    "block_conflicts": false
+  },
+  "release": {
+    "block_severities": [
+      "critical",
+      "high",
+      "medium"
+    ],
+    "block_scope": "shipped_or_unknown",
+    "block_kev_untriaged": true,
+    "block_vex_problems": true,
+    "minimum_confidence": "low",
+    "block_conflicts": true,
+    "require_all_triaged": true,
+    "require_readiness": false
+  }
+}

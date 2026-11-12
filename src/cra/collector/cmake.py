@@ -128,7 +128,7 @@ def _select_configuration(codemodel, wanted):
     return configurations[0]
 
 
-def analyze_reply(files, configuration_id, wanted_config, folders, evidence_id, build_dir):
+def analyze_reply(files, configuration_id, wanted_config, folders, evidence_id, build_dir, test_frameworks=None, test_targets=()):
     """Build target facts plus observations linking Conan packages to targets."""
     selected = _select_configuration(files["codemodel"], wanted_config)
     by_id, targets = {}, []
@@ -179,6 +179,34 @@ def analyze_reply(files, configuration_id, wanted_config, folders, evidence_id, 
                     result.setdefault(key, value)
         return result
 
+    from ..common.mappings import test_frameworks as bundled_frameworks
+    frameworks = set(test_frameworks if test_frameworks is not None else bundled_frameworks())
+    def descendants(identifier, seen=None):
+        seen = set() if seen is None else seen
+        if identifier in seen:
+            return seen
+        seen.add(identifier)
+        for dependency in by_id.get(identifier, {}).get("dependencies") or []:
+            if isinstance(dependency, dict) and dependency.get("id") in by_id:
+                descendants(dependency["id"], seen)
+        return seen
+    test_executables = set()
+    for identifier, data in by_id.items():
+        if data.get("type") != "EXECUTABLE":
+            continue
+        related = descendants(identifier)
+        package_names = {link["identity"]["name"].lower() for child in related for link in target_links.get(child, {}).values()}
+        target_names = {str(by_id[child].get("name", "")).lower().split("::")[-1] for child in related}
+        if data.get("name") in test_targets or frameworks & (package_names | target_names):
+            test_executables.add(identifier)
+    used_by_test, used_by_runtime = set(), set()
+    for identifier, data in by_id.items():
+        if data.get("type") == "EXECUTABLE":
+            (used_by_test if identifier in test_executables else used_by_runtime).update(descendants(identifier))
+        if data.get("install") and identifier not in test_executables:
+            used_by_runtime.update(descendants(identifier))
+    test_only = used_by_test - used_by_runtime
+
     for identifier, data in by_id.items():
         kind = data.get("type")
         if kind in ("UTILITY", None):
@@ -190,12 +218,13 @@ def analyze_reply(files, configuration_id, wanted_config, folders, evidence_id, 
                    if isinstance(d, dict) and d.get("id") in by_id and by_id[d["id"]].get("type") != "UTILITY"]
         targets.append({"configuration": configuration_id, "name": data.get("name"), "type": kind,
                         "outputs": outputs, "components": sorted(links), "in_tree_dependencies": sorted(n for n in in_tree if n),
+                        "scope": "test" if identifier in test_only else "runtime",
                         "sources": sorted(s.get("path") for s in data.get("sources") or [] if isinstance(s, dict) and isinstance(s.get("path"), str))[:500]})
         for key, link in links.items():
             observations.append({
                 "id": stable_id("obs", "cmake", configuration_id, data.get("name"), key, link["via"]),
                 "source": "cmake", "state": "observed", "configuration": configuration_id, "identity": link["identity"],
-                "scope": "runtime", "linkage": link["linkage"],
+                "scope": "test" if identifier in test_only else "runtime", "linkage": link["linkage"],
                 "location": f"target {data.get('name')}: {link['via']} {link['path']}",
                 "evidence": evidence_id, "confidence": "high" if link["via"] == "link_path" else "medium",
                 "attributes": {"target": data.get("name"), "via": link["via"], "outputs": outputs},

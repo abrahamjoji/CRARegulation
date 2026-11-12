@@ -233,6 +233,23 @@
           "items": {
             "type": "string"
           }
+        },
+        "cpe_mappings": {
+          "type": "string"
+        },
+        "test_frameworks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "test_targets": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

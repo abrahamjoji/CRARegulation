@@ -1,0 +1,16 @@
+{
+  "schema_version": "cra.cpe-mappings/1",
+  "mappings": {
+    "zlib": "cpe:2.3:a:zlib:zlib:{version}:*:*:*:*:*:*:*",
+    "openssl": "cpe:2.3:a:openssl:openssl:{version}:*:*:*:*:*:*:*",
+    "lz4": "cpe:2.3:a:lz4_project:lz4:{version}:*:*:*:*:*:*:*",
+    "fmt": "cpe:2.3:a:fmt:fmt:{version}:*:*:*:*:*:*:*",
+    "nlohmann_json": "cpe:2.3:a:json-for-modern-cpp_project:json-for-modern-cpp:{version}:*:*:*:*:*:*:*",
+    "libcurl": "cpe:2.3:a:haxx:libcurl:{version}:*:*:*:*:*:*:*",
+    "curl": "cpe:2.3:a:haxx:curl:{version}:*:*:*:*:*:*:*",
+    "expat": "cpe:2.3:a:libexpat_project:libexpat:{version}:*:*:*:*:*:*:*",
+    "mosquitto": "cpe:2.3:a:eclipse:mosquitto:{version}:*:*:*:*:*:*:*",
+    "protobuf-c": "cpe:2.3:a:protobuf-c_project:protobuf-c:{version}:*:*:*:*:*:*:*",
+    "mbedtls": "cpe:2.3:a:arm:mbed_tls:{version}:*:*:*:*:*:*:*"
+  }
+}

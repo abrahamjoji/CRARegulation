@@ -105,7 +105,7 @@ def _collect_cmake(configuration, config, store, out, folders):
     try:
         files = cmake.read_reply(index)
         evidence = store.add_json("collector-input", f"cmake:{configuration.id}", _retained_reply(files), f"cmake-{configuration.id}.reply.json", adapter="cmake-file-api")
-        parsed = cmake.analyze_reply(files, configuration.id, configuration.cmake_config, folders, evidence, build_dir)
+        parsed = cmake.analyze_reply(files, configuration.id, configuration.cmake_config, folders, evidence, build_dir, config.tools.test_frameworks, config.tools.test_targets)
     except UntrustedInputError as exc:
         out["sources"].append(source_status("cmake", configuration.id, "failed", str(exc), configuration.required, code=exc.code))
         return

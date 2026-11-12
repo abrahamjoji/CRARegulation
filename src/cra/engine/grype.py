@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 
 from ..common.bundle import bundle_file
+from ..common.mappings import load_cpe_mappings
 from ..common.errors import UntrustedInputError, diagnostic
 from ..common.safety import Limits, read_json, run_tool, tool_environment, write_json
 from ..common.safety import MIB
@@ -16,29 +17,17 @@ SUPPORTED_GRYPE = {"0.121.2"}
 MAX_OUTPUT = 512 * MIB
 # Curated product CPEs for packages whose ecosystem has no vulnerability feed of its own.
 # A CPE match compares product names, so results carry medium confidence at best.
-CPE_HINTS = {
-    "zlib": "cpe:2.3:a:zlib:zlib:{version}:*:*:*:*:*:*:*",
-    "openssl": "cpe:2.3:a:openssl:openssl:{version}:*:*:*:*:*:*:*",
-    "lz4": "cpe:2.3:a:lz4_project:lz4:{version}:*:*:*:*:*:*:*",
-    "fmt": "cpe:2.3:a:fmt:fmt:{version}:*:*:*:*:*:*:*",
-    "nlohmann_json": "cpe:2.3:a:json-for-modern-cpp_project:json-for-modern-cpp:{version}:*:*:*:*:*:*:*",
-    "libcurl": "cpe:2.3:a:haxx:libcurl:{version}:*:*:*:*:*:*:*",
-    "curl": "cpe:2.3:a:haxx:curl:{version}:*:*:*:*:*:*:*",
-    "expat": "cpe:2.3:a:libexpat_project:libexpat:{version}:*:*:*:*:*:*:*",
-    "mosquitto": "cpe:2.3:a:eclipse:mosquitto:{version}:*:*:*:*:*:*:*",
-    "protobuf-c": "cpe:2.3:a:protobuf-c_project:protobuf-c:{version}:*:*:*:*:*:*:*",
-    "mbedtls": "cpe:2.3:a:arm:mbed_tls:{version}:*:*:*:*:*:*:*",
-}
 
 
-def apply_cpe_hints(sbom):
+def apply_cpe_hints(sbom, mapping_path=None):
     """Add curated CPEs. Returns the bom-refs that received one."""
+    mappings = load_cpe_mappings(mapping_path)
     hinted = set()
     for component in sbom["components"]:
         # These hints describe native Conan/generic packages, not similarly named PyPI packages.
         if not component.get("purl", "").startswith(("pkg:conan/", "pkg:generic/")):
             continue
-        template = CPE_HINTS.get(component["name"].lower())
+        template = mappings.get(component["name"].lower())
         if template and "cpe" not in component and component.get("version"):
             component["cpe"] = template.format(version=component["version"])
             hinted.add(component["bom-ref"])
@@ -178,7 +167,7 @@ def scan_inventory(inventory, collection_root, tools, work_dir, store):
     matches, diagnostics, targets, ignored, raw_records = [], [], [], 0, []
     plans = []
     sbom = export_cyclonedx(inventory, only_for_scan=True)
-    hinted = apply_cpe_hints(sbom)
+    hinted = apply_cpe_hints(sbom, tools.cpe_mappings)
     hinted_purls = {item["purl"] for item in sbom["components"] if item["bom-ref"] in hinted or item.get("cpe")}
     # A package with no CPE in an ecosystem with no feed gets no matches. That must be said.
     not_matchable = [{"component": item["bom-ref"], "name": item["name"], "version": item.get("version"),

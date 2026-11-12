@@ -60,6 +60,20 @@ For the hosted service and tests, install the locked dependencies:
 .venv/bin/pip install --require-hashes -r requirements/dev.lock
 ```
 
+## Generate your config
+
+Run in the product repository (or pass `--root`). Static detection does not execute build files or claim complete discovery.
+
+```bash
+cra init --name my-product --version 1.2.3 --supplier 'My organisation' --dry-run
+cra init --name my-product --version 1.2.3 --supplier 'My organisation'
+cra validate --config cra.toml
+cra data update --config cra.toml
+# Review generated records, capture actual build evidence, then collect/analyze/gate.
+```
+
+Existing files require merge-only `--force`; use `--author` to select trusted VEX authors explicitly. SDK roots, CPE mappings, test framework settings, strict policy, readiness templates and detector limitations are documented in [Generate your configuration](docs/INITIALIZATION.md).
+
 ## Python, C, C++ and other projects
 
 Collection is evidence-based, not selected by a language flag. Python uses captured `pip inspect` metadata; C/C++ use native build/artifact evidence; generic directory and container scans use Syft's package detectors. Conan and CMake are optional. See [language support and runnable configuration examples](docs/LANGUAGE_SUPPORT.md).
@@ -85,6 +99,7 @@ The gate exits 10, because the final image has real unaddressed high-severity fi
 
 | Document | Contents |
 | --- | --- |
+| [Configuration generation](docs/INITIALIZATION.md) | Detection, init, validation, mappings, policy templates and safe reruns |
 | [Integration guide and CLI](docs/CLI.md) | Commands, configuration, policy, component records, VEX scope, schemas |
 | [Architecture](docs/ARCHITECTURE.md) | Components and significant decisions |
 | [Threat model](docs/THREAT_MODEL.md) | Assets, boundaries, controls and open risks |

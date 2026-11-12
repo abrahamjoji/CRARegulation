@@ -1,0 +1,173 @@
+{
+  "demo": false,
+  "product": "",
+  "manufacturer": "",
+  "firmware_version": "",
+  "build_id": "",
+  "cra_class": "",
+  "classification_rationale": "",
+  "market": {
+    "first_placed": null,
+    "units_after_application": true
+  },
+  "other_laws": [],
+  "support_period_end": "",
+  "support_period_rationale": "",
+  "triage_policy": {
+    "max_investigation_days": 14
+  },
+  "security_contact": "",
+  "annex_i": {
+    "part_1": [
+      {
+        "id": "I.2(a)",
+        "req": "No known exploitable vulnerabilities at release",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "I.2(b)",
+        "req": "Secure-by-default configuration, reset to original state",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "I.2(c)",
+        "req": "Vulnerabilities can be fixed through security updates",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "I.2(d)",
+        "req": "Protection from unauthorised access",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "I.2(e)",
+        "req": "Confidentiality of stored and transmitted data",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "I.2(f)",
+        "req": "Integrity of data, commands and programs",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "I.2(g)",
+        "req": "Data minimisation",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "I.2(h)",
+        "req": "Availability of essential functions, DoS resilience",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "I.2(i)",
+        "req": "Minimise negative impact on other devices and networks",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "I.2(j)",
+        "req": "Limit attack surfaces, including external interfaces",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "I.2(k)",
+        "req": "Exploitation mitigation mechanisms",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "I.2(l)",
+        "req": "Security logging and monitoring, with opt-out",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "I.2(m)",
+        "req": "Secure deletion of data and settings",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      }
+    ],
+    "part_2": [
+      {
+        "id": "II.1",
+        "req": "Identify and document components (SBOM)",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "II.2",
+        "req": "Address vulnerabilities without delay, via security updates",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "II.3",
+        "req": "Regular tests and reviews of security",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "II.4",
+        "req": "Publicly disclose fixed vulnerabilities",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "II.5",
+        "req": "Coordinated vulnerability disclosure policy",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "II.6",
+        "req": "Contact address for reporting vulnerabilities",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "II.7",
+        "req": "Secure distribution of updates",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      },
+      {
+        "id": "II.8",
+        "req": "Security updates free of charge, with advisory messages",
+        "status": "missing",
+        "evidence": "",
+        "evidence_refs": []
+      }
+    ]
+  }
+}

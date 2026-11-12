@@ -26,4 +26,4 @@ version = { attr = "cra.__version__" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-cra = ["schemas/*.json"]
+cra = ["schemas/*.json", "data/*.json", "data/templates/*.json"]

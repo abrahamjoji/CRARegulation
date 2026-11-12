@@ -354,6 +354,11 @@ def _coverage(collection, components, unresolved, conflicts):
     for component in components.values():
         if not component["identity"]["version"] and component["presence"]["shipped"] != "no":
             reasons.append({"code": "unknown_version", "subject": component["id"], "message": f"{component['identity']['name']} has no version, so vulnerability matching cannot work for it."})
+    for observation in collection["observations"]:
+        attributes = observation.get("attributes") or {}
+        if attributes.get("generated") is True and not attributes.get("reviewed_by"):
+            reasons.append({"code": "generated_record_unreviewed", "subject": observation["id"],
+                            "message": "Generated component identity/scope needs human review in the records file."})
     covered = collection["covered_vendor_paths"]
     for candidate in collection["vendored_candidates"]:
         if isinstance(candidate, dict) and not any(str(candidate.get("path", "")).endswith(path) or path.endswith(str(candidate.get("path", ""))) for path in covered):

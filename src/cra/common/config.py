@@ -95,6 +95,9 @@ class Tools:
     allow_unverified_versions: bool = False
     add_generated_cpes: bool = False
     env_passthrough: list = field(default_factory=list)
+    cpe_mappings: Path | None = None
+    test_frameworks: list | None = None
+    test_targets: list = field(default_factory=list)
 
 
 @dataclass
@@ -148,6 +151,12 @@ def load_config(path):
         raise ConfigError("config_unreadable", f"cannot read {path}: {exc.strerror or exc}") from exc
     except (tomllib.TOMLDecodeError, UnicodeDecodeError) as exc:
         raise ConfigError("config_invalid", f"{path}: {exc}") from exc
+    return parse_config(raw, path)
+
+
+def parse_config(raw, path):
+    """Validate parsed config without creating a temporary file (used by init)."""
+    path = Path(path)
     _keys(raw, TOP_KEYS, "config")
     if raw.get("schema_version") != SCHEMA:
         raise ConfigError("config_schema", f"schema_version must be {SCHEMA!r}, found {raw.get('schema_version')!r}")
@@ -245,7 +254,7 @@ def load_config(path):
     if not isinstance(record_paths, list) or not all(isinstance(item, str) and item.strip() for item in record_paths):
         raise ConfigError("config_invalid", "components.records must be a list of paths")
     tools_table = raw.get("tools", {})
-    _keys(tools_table, {"syft", "grype", "timeout_seconds", "allow_unverified_versions", "add_generated_cpes", "env_passthrough"}, "tools")
+    _keys(tools_table, {"syft", "grype", "timeout_seconds", "allow_unverified_versions", "add_generated_cpes", "env_passthrough", "cpe_mappings", "test_frameworks", "test_targets"}, "tools")
     def _tool(name):
         value = _string(tools_table, name, "tools", default=name)
         return str(_path(root, value)) if "/" in value else value
@@ -258,7 +267,11 @@ def load_config(path):
     tools = Tools(syft=_tool("syft"), grype=_tool("grype"), timeout_seconds=timeout,
                   allow_unverified_versions=_boolean(tools_table, "allow_unverified_versions", "tools"),
                   add_generated_cpes=_boolean(tools_table, "add_generated_cpes", "tools"),
-                  env_passthrough=passthrough)
+                  env_passthrough=passthrough,
+                  cpe_mappings=_path(root, _string(tools_table, "cpe_mappings", "tools")),
+                  test_frameworks=tools_table.get("test_frameworks"), test_targets=tools_table.get("test_targets", []))
+    if tools.test_frameworks is not None and (not isinstance(tools.test_frameworks, list) or any(not isinstance(x, str) or not x for x in tools.test_frameworks)):
+        raise ConfigError("config_invalid", "tools.test_frameworks must list package names")
 
     analysis_table = raw.get("analysis", {})
     _keys(analysis_table, {"policy", "vex", "kev", "product_file", "risk_file", "register_file"}, "analysis")
@@ -270,6 +283,9 @@ def load_config(path):
                         product_file=_path(root, _string(analysis_table, "product_file", "analysis")),
                         risk_file=_path(root, _string(analysis_table, "risk_file", "analysis")),
                         register_file=_path(root, _string(analysis_table, "register_file", "analysis")))
+
+    if not isinstance(tools.test_targets, list) or any(not isinstance(x, str) or not x for x in tools.test_targets):
+        raise ConfigError("config_invalid", "tools.test_targets must list target names")
 
     hosted_table = raw.get("hosted", {})
     _keys(hosted_table, {"url", "token_env", "poll_seconds", "timeout_seconds"}, "hosted")
