@@ -207,6 +207,22 @@ dir = "out"
         with patch.object(directory, 'MAX_BYTES', 2), self.assertRaises(UntrustedInputError):
             directory.snapshot(source, stage)
 
+    def test_source_directory_skips_virtualenvs_but_not_other_symlinks(self):
+        source, stage = self.root / 'project', self.root / 'stage'
+        (source / '.venv-x' / 'lib').mkdir(parents=True); stage.mkdir()
+        (source / '.venv-x' / 'pyvenv.cfg').write_text('home = /usr/bin\n')
+        (source / '.venv-x' / 'lib64').symlink_to('lib')
+        (source / 'requirements.txt').write_text('requests==2.25.0\n')
+        with self.assertRaises(UntrustedInputError):
+            directory.snapshot(source, stage)
+        skipped = []
+        files, _ = directory.snapshot(source, self.root / 'stage2', skip_venvs=True, skipped=skipped)
+        self.assertEqual([f["path"] for f in files], ['requirements.txt'])
+        self.assertEqual(skipped, ['.venv-x'])
+        (source / 'other').symlink_to('requirements.txt')
+        with self.assertRaises(UntrustedInputError):
+            directory.snapshot(source, self.root / 'stage3', skip_venvs=True)
+
     def test_missing_directory_is_incomplete(self):
         config = self.config('\n[[directories]]\nid="app"\npath="missing"')
         out, _ = collect(config)

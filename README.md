@@ -51,8 +51,10 @@ Python 3.11 or newer on Linux (see [Supported platforms](#supported-platforms)).
 python3 -m venv .venv
 .venv/bin/pip install .            # the cra command
 scripts/install_tools.sh           # pinned Syft, Grype and cosign in .tools/, digest-checked
-.tools/grype db update             # vulnerability data; analysis itself never updates it
+export PATH="$PWD/.tools:$PATH"    # cra runs syft and grype from PATH
 ```
+
+`cra` looks for `syft` and `grype` on `PATH`. Either keep `.tools/` on `PATH` as above, or set absolute or project-relative paths in the configuration under `[tools]` (`syft = "/opt/cra/.tools/syft"`, `grype = "/opt/cra/.tools/grype"`). Fetch vulnerability data with `cra data update` (below). It needs several GiB of free space for the Grype database; analysis itself never updates it.
 
 For the hosted service and tests, install the locked dependencies:
 
