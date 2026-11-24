@@ -10,6 +10,7 @@ from .common.kev import load as load_kev
 
 KEV_URL='https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json'
 MAX_KEV=32*1024*1024
+MAX_GRYPE_DB=16*1024*1024*1024
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -25,8 +26,11 @@ def update(config_path, *, kev_file=None, skip_db=False):
     if not skip_db:
         with tempfile.TemporaryDirectory(prefix='cra-data-') as home:
             env=tool_environment({'HOME':home,'GRYPE_CHECK_FOR_APP_UPDATE':'false','GRYPE_DB_CACHE_DIR':os.environ.get('GRYPE_DB_CACHE_DIR',str(Path.home()/'.cache/grype/db'))})
-            result=run_tool([config.tools.grype,'db','update'],limits=Limits(timeout_seconds=config.tools.timeout_seconds),env=env,cwd=home)
-            if result.returncode or result.missing or result.timed_out:raise OperationalError('data_update_failed','Grype DB update failed; no clean analysis can be inferred')
+            # The Grype v6 database is several GiB, beyond the default 2 GiB scanner output limit.
+            result=run_tool([config.tools.grype,'db','update'],limits=Limits(timeout_seconds=config.tools.timeout_seconds,output_bytes=MAX_GRYPE_DB),env=env,cwd=home)
+            if result.missing:raise OperationalError('data_update_failed',f'Grype DB update failed: {result.stderr}. Put Grype on PATH or set tools.grype in the configuration')
+            if result.timed_out:raise OperationalError('data_update_failed',f'Grype DB update timed out after {config.tools.timeout_seconds} s')
+            if result.returncode:raise OperationalError('data_update_failed',f'Grype DB update failed (exit {result.returncode}): {" ".join(result.stderr.strip().splitlines()[-2:])[-500:]}')
     with tempfile.TemporaryDirectory(prefix='cra-kev-') as temporary:
         staged=Path(temporary)/'kev.json'
         if kev_file:

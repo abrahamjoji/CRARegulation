@@ -27,7 +27,9 @@ def _open_in_tree(root_fd, relative):
         os.close(parent)
 
 
-def snapshot(root, destination, excluded=()):
+def snapshot(root, destination, excluded=(), skip_venvs=False, skipped=None):
+    """Copy regular files into destination. With skip_venvs, Python virtual environments
+    (directories holding pyvenv.cfg) are left out and their relative paths appended to skipped."""
     root, destination = Path(root).resolve(), Path(destination)
     excluded = [Path(path).resolve() for path in excluded]
     entries, total = [], 0
@@ -44,6 +46,10 @@ def snapshot(root, destination, excluded=()):
                     dirs.remove(name)
                 elif path.is_symlink():
                     raise UntrustedInputError("directory_symlink", f"directory scan refuses symlinks: {path.relative_to(root)}")
+                elif skip_venvs and (path / "pyvenv.cfg").is_file() and not (path / "pyvenv.cfg").is_symlink():
+                    dirs.remove(name)
+                    if skipped is not None:
+                        skipped.append(path.relative_to(root).as_posix())
             for name in sorted(files):
                 if name == ".git":
                     continue
@@ -93,7 +99,11 @@ def collect_directory(directory, tools, store, excluded=()):
     with tempfile.TemporaryDirectory(prefix="cra-directory-") as work:
         staged = Path(work) / "input"
         staged.mkdir()
-        files, total = snapshot(root, staged, excluded)
+        skipped = []
+        files, total = snapshot(root, staged, excluded, skip_venvs=directory.role == "source", skipped=skipped)
+        if skipped:
+            record["limitations"].append("Python virtual environments in this source directory were not scanned "
+                                         "(use a pip inspect configuration for installed packages): " + ", ".join(skipped))
         snapshot_evidence = store.add_json("collector-input", f"directory:{directory.id}", {"files": files},
                                            f"directory-{directory.id}.files.json", adapter="directory-snapshot")
         record["sha256"] = sha256_bytes(json.dumps(files, sort_keys=True, separators=(",", ":")).encode())

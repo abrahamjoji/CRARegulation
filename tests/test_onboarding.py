@@ -229,6 +229,24 @@ class Init(unittest.TestCase):
         with self.assertRaises(ConfigError):update(self.root/'cra.toml',kev_file=self.root/'invalid-kev.json',skip_db=True)
         self.assertEqual(before,(self.root/'data/kev.json').read_bytes())
 
+    def test_grype_db_update_allows_large_database_and_reports_cause(self):
+        from cra import data_update
+        from cra.common.errors import OperationalError
+        from cra.common.safety import ToolResult
+        self.run_init()
+        seen=[]
+        def missing(argv,**kwargs):
+            seen.append(kwargs['limits']);return ToolResult(127,'cannot start grype: No such file or directory',False,missing=True)
+        with patch.object(data_update,'run_tool',side_effect=missing),self.assertRaises(OperationalError) as caught:
+            data_update.update(self.root/'cra.toml')
+        self.assertIn('cannot start grype',str(caught.exception))
+        self.assertIn('tools.grype',str(caught.exception))
+        # The Grype v6 database exceeds the 2 GiB default scanner output limit.
+        self.assertGreater(seen[0].output_bytes,4*1024**3)
+        with patch.object(data_update,'run_tool',return_value=ToolResult(1,'[0010] ERROR unable to download db: disk full\n',False)),self.assertRaises(OperationalError) as caught:
+            data_update.update(self.root/'cra.toml')
+        self.assertIn('disk full',str(caught.exception))
+
     def test_cli_policy_and_validate(self):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(main(['policy','init','--out',str(self.root/'policy.toml'),'--author','Team']),0)
