@@ -6,6 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "cra-evidence"
 description = "CI-integrated dependency evidence, vulnerability analysis and CRA readiness tooling"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Abraham Joji" }]
 requires-python = ">=3.11"
 dynamic = ["version"]
 # The collector, local engine and gate deliberately have no runtime dependencies.
