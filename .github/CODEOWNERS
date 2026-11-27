@@ -1,0 +1,8 @@
+# Every change needs review from the maintainer.
+* @abrahamjoji
+
+# Changes to CI, release tooling and security policy are especially sensitive.
+/.github/ @abrahamjoji
+/scripts/ @abrahamjoji
+/deploy/ @abrahamjoji
+/SECURITY.md @abrahamjoji

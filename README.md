@@ -140,6 +140,10 @@ docs/             Architecture, security, integration and operating guides
 
 See [folder ownership and migration details](docs/REPOSITORY_LAYOUT.md). The [legacy demo guide](poc/legacy/README.md) describes the original report pipeline. New customer integrations should use the `cra` CLI. The [reference application](poc/reference/README.md) is PoC material used by real-tool integration tests, not a scanner runtime dependency.
 
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request, and report security problems privately as described in [SECURITY.md](SECURITY.md).
+
 ## License
 
 Released under the [MIT License](LICENSE). Copyright (c) 2026 Abraham Joji.
