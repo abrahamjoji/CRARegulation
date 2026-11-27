@@ -20,7 +20,7 @@ ADD --checksum=sha256:d7d2e160255b0f087280feabf6f213cf4c45d475690f3f1fe5dc336eb1
 FROM syft-${TARGETARCH} AS syft
 FROM grype-${TARGETARCH} AS grype
 
-FROM python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df AS base
+FROM python:3.15-slim-bookworm@sha256:498829c717b1e59fc42f0e7865eafe4e04ca0f70a3769d4ae70ba218df54507c AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 SYFT_CHECK_FOR_APP_UPDATE=false GRYPE_CHECK_FOR_APP_UPDATE=false
 RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin cra
 RUN --mount=type=bind,from=syft,target=/dl tar -xzf /dl/syft.tar.gz -C /usr/local/bin syft
