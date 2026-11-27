@@ -49,6 +49,7 @@ Python 3.11 or newer on Linux (see [Supported platforms](#supported-platforms)).
 
 ```bash
 python3 -m venv .venv
+. .venv/bin/activate               # puts cra and the venv python on PATH for the commands below
 .venv/bin/pip install .            # the cra command
 scripts/install_tools.sh           # pinned Syft, Grype and cosign in .tools/, digest-checked
 export PATH="$PWD/.tools:$PATH"    # cra runs syft and grype from PATH
@@ -114,6 +115,8 @@ The gate exits 10, because the final image has real unaddressed high-severity fi
 | [Pilot checklist](docs/PILOT_CHECKLIST.md) | What a customer pilot has to establish |
 
 ## Run the tests
+
+Run these with the virtual environment active and the locked dependencies installed (see [Install](#install)).
 
 ```bash
 python -m unittest discover tests                                        # deterministic, offline, fake scanners
